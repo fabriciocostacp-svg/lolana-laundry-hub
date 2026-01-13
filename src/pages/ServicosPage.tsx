@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -13,11 +13,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { servicosFixos } from "@/data/servicos";
-import { Package, ShoppingCart } from "lucide-react";
+import { useStore } from "@/store/useStore";
+import { ItemPedido } from "@/types";
+import { Package, ShoppingCart, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 
 export const ServicosPage = () => {
-  const navigate = useNavigate();
+  const { clientes, addPedido } = useStore();
+  const [selectedClienteId, setSelectedClienteId] = useState<string>("");
   const [quantidades, setQuantidades] = useState<Record<string, number>>(
     servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
   );
@@ -58,9 +69,79 @@ export const ServicosPage = () => {
     return colors[categoria] || "bg-muted text-muted-foreground";
   };
 
+  const handleCriarPedido = () => {
+    const cliente = clientes.find((c) => c.id === selectedClienteId);
+    if (!cliente) {
+      toast.error("Selecione um cliente!");
+      return;
+    }
+
+    const itens: ItemPedido[] = servicosFixos
+      .filter((s) => quantidades[s.id] > 0)
+      .map((s) => ({
+        servico: s,
+        quantidade: quantidades[s.id],
+      }));
+
+    if (itens.length === 0) {
+      toast.error("Selecione pelo menos um serviço!");
+      return;
+    }
+
+    addPedido(cliente, itens);
+    toast.success("Pedido criado com sucesso!");
+    
+    // Reset form
+    setSelectedClienteId("");
+    setQuantidades(servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {}));
+  };
+
+  const hasServicosSelected = Object.values(quantidades).some((q) => q > 0);
+
   return (
     <MainLayout title="Serviços / Produtos">
       <div className="space-y-6">
+        {/* Card de Seleção de Cliente */}
+        <Card className="shadow-lg border-0">
+          <CardHeader className="bg-primary/10 rounded-t-lg py-4">
+            <div className="flex items-center gap-3">
+              <UserCheck className="h-6 w-6 text-primary" />
+              <CardTitle>Selecionar Cliente</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="py-4">
+            <div className="flex items-end gap-4">
+              <div className="flex-1 space-y-2">
+                <Label>Cliente *</Label>
+                <Select value={selectedClienteId} onValueChange={setSelectedClienteId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione um cliente cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        Nenhum cliente cadastrado
+                      </SelectItem>
+                    ) : (
+                      clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          #{cliente.id} - {cliente.nome} | {cliente.telefone}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              {clientes.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Cadastre clientes na aba "Clientes" primeiro
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabela de Serviços */}
         <Card className="shadow-lg border-0">
           <CardHeader className="bg-muted/50 rounded-t-lg">
             <div className="flex items-center justify-between">
@@ -76,12 +157,13 @@ export const ServicosPage = () => {
                   </p>
                 </div>
                 <Button 
-                  onClick={() => navigate("/pedidos")} 
+                  onClick={handleCriarPedido} 
                   className="gap-2"
                   size="lg"
+                  disabled={!selectedClienteId || !hasServicosSelected}
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Criar Pedido
+                  Cadastrar Pedido
                 </Button>
               </div>
             </div>
@@ -102,7 +184,7 @@ export const ServicosPage = () => {
                   <>
                     {servicosFixos
                       .filter((s) => s.categoria === categoria)
-                      .map((servico, index) => (
+                      .map((servico) => (
                         <TableRow
                           key={servico.id}
                           className={`hover:bg-muted/20 ${
