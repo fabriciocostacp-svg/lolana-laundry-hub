@@ -14,7 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          created_at: string
+          endereco: string
+          id: string
+          nome: string
+          numero: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endereco: string
+          id?: string
+          nome: string
+          numero: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string
+          id?: string
+          nome?: string
+          numero?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pedidos: {
+        Row: {
+          cliente_id: string
+          cliente_nome: string
+          cliente_telefone: string
+          created_at: string
+          id: string
+          itens: Json
+          numero: string
+          status: string
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          cliente_nome: string
+          cliente_telefone: string
+          created_at?: string
+          id?: string
+          itens?: Json
+          numero: string
+          status?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string
+          cliente_nome?: string
+          cliente_telefone?: string
+          created_at?: string
+          id?: string
+          itens?: Json
+          numero?: string
+          status?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
