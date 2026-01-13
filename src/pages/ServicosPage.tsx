@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,9 +14,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { servicosFixos } from "@/data/servicos";
-import { Package } from "lucide-react";
+import { Package, ShoppingCart } from "lucide-react";
 
 export const ServicosPage = () => {
+  const navigate = useNavigate();
   const [quantidades, setQuantidades] = useState<Record<string, number>>(
     servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
   );
@@ -65,11 +68,21 @@ export const ServicosPage = () => {
                 <Package className="h-6 w-6 text-primary" />
                 <CardTitle>Tabela de Serviços</CardTitle>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Total Selecionado</p>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(total)}
-                </p>
+              <div className="text-right flex items-center gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Selecionado</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {formatCurrency(total)}
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => navigate("/pedidos")} 
+                  className="gap-2"
+                  size="lg"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Criar Pedido
+                </Button>
               </div>
             </div>
           </CardHeader>
