@@ -13,6 +13,8 @@ export interface PedidoDB {
   valor_total: number;
   status: StatusPedido;
   itens: ItemPedido[];
+  pago: boolean;
+  retirado: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +39,9 @@ export const usePedidos = () => {
         ...p,
         valor_total: Number(p.valor_total),
         itens: p.itens as unknown as ItemPedido[],
-        status: p.status as StatusPedido
+        status: p.status as StatusPedido,
+        pago: p.pago ?? false,
+        retirado: p.retirado ?? false
       })) as PedidoDB[];
     },
   });
@@ -59,6 +63,8 @@ export const usePedidos = () => {
           valor_total: valorTotal,
           status: "lavando",
           itens: JSON.parse(JSON.stringify(itens)),
+          pago: false,
+          retirado: false
         }])
         .select()
         .single();
@@ -92,6 +98,23 @@ export const usePedidos = () => {
     },
   });
 
+  const updatePedidoPagamento = useMutation({
+    mutationFn: async ({ id, pago, retirado }: { id: string; pago: boolean; retirado: boolean }) => {
+      const { error } = await supabase
+        .from("pedidos")
+        .update({ pago, retirado })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar pagamento");
+    },
+  });
+
   const deletePedido = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -115,6 +138,7 @@ export const usePedidos = () => {
     isLoading,
     addPedido,
     updatePedidoStatus,
+    updatePedidoPagamento,
     deletePedido,
   };
 };

@@ -21,13 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { servicosFixos } from "@/data/servicos";
-import { useStore } from "@/store/useStore";
+import { useClientes } from "@/hooks/useClientes";
+import { usePedidos } from "@/hooks/usePedidos";
 import { ItemPedido } from "@/types";
-import { Package, ShoppingCart, UserCheck } from "lucide-react";
+import { Package, ShoppingCart, UserCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const ServicosPage = () => {
-  const { clientes, addPedido } = useStore();
+  const { clientes, isLoading: loadingClientes } = useClientes();
+  const { addPedido } = usePedidos();
   const [selectedClienteId, setSelectedClienteId] = useState<string>("");
   const [quantidades, setQuantidades] = useState<Record<string, number>>(
     servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
@@ -60,11 +62,11 @@ export const ServicosPage = () => {
 
   const getCategoryColor = (categoria: string) => {
     const colors: Record<string, string> = {
-      "Serviços por KG": "bg-info/10 text-info border-info/30",
-      "Peças de Cama": "bg-accent/10 text-accent border-accent/30",
-      "Camisas": "bg-warning/10 text-warning border-warning/30",
-      "Vestido": "bg-destructive/10 text-destructive border-destructive/30",
-      "Valor Unitário": "bg-success/10 text-success border-success/30",
+      "Serviços por KG": "bg-[hsl(210,100%,50%)]/10 text-[hsl(210,100%,50%)] border-[hsl(210,100%,50%)]/30",
+      "Peças de Cama": "bg-[hsl(199,89%,48%)]/10 text-[hsl(199,89%,48%)] border-[hsl(199,89%,48%)]/30",
+      "Camisas": "bg-[hsl(38,92%,50%)]/10 text-[hsl(38,92%,50%)] border-[hsl(38,92%,50%)]/30",
+      "Vestido": "bg-[hsl(280,70%,50%)]/10 text-[hsl(280,70%,50%)] border-[hsl(280,70%,50%)]/30",
+      "Valor Unitário": "bg-[hsl(142,76%,36%)]/10 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30",
     };
     return colors[categoria] || "bg-muted text-muted-foreground";
   };
@@ -88,8 +90,7 @@ export const ServicosPage = () => {
       return;
     }
 
-    addPedido(cliente, itens);
-    toast.success("Pedido criado com sucesso!");
+    addPedido.mutate({ cliente, itens });
     
     // Reset form
     setSelectedClienteId("");
@@ -98,15 +99,25 @@ export const ServicosPage = () => {
 
   const hasServicosSelected = Object.values(quantidades).some((q) => q > 0);
 
+  if (loadingClientes) {
+    return (
+      <MainLayout title="Serviços">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
-    <MainLayout title="Serviços / Produtos">
+    <MainLayout title="Serviços">
       <div className="space-y-6">
         {/* Card de Seleção de Cliente */}
-        <Card className="shadow-lg border-0">
-          <CardHeader className="bg-primary/10 rounded-t-lg py-4">
+        <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] text-white rounded-t-2xl py-4">
             <div className="flex items-center gap-3">
-              <UserCheck className="h-6 w-6 text-primary" />
-              <CardTitle>Selecionar Cliente</CardTitle>
+              <UserCheck className="h-6 w-6" />
+              <CardTitle className="text-white">Selecionar Cliente</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="py-4">
@@ -114,10 +125,10 @@ export const ServicosPage = () => {
               <div className="flex-1 space-y-2">
                 <Label>Cliente *</Label>
                 <Select value={selectedClienteId} onValueChange={setSelectedClienteId}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full rounded-xl">
                     <SelectValue placeholder="Selecione um cliente cadastrado" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {clientes.length === 0 ? (
                       <SelectItem value="none" disabled>
                         Nenhum cliente cadastrado
@@ -125,7 +136,7 @@ export const ServicosPage = () => {
                     ) : (
                       clientes.map((cliente) => (
                         <SelectItem key={cliente.id} value={cliente.id}>
-                          #{cliente.id} - {cliente.nome} | {cliente.telefone}
+                          #{cliente.numero} - {cliente.nome} | {cliente.telefone}
                         </SelectItem>
                       ))
                     )}
@@ -142,28 +153,28 @@ export const ServicosPage = () => {
         </Card>
 
         {/* Tabela de Serviços */}
-        <Card className="shadow-lg border-0">
-          <CardHeader className="bg-muted/50 rounded-t-lg">
+        <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-[hsl(210,100%,97%)] rounded-t-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Package className="h-6 w-6 text-primary" />
-                <CardTitle>Tabela de Serviços</CardTitle>
+                <Package className="h-6 w-6 text-[hsl(210,100%,50%)]" />
+                <CardTitle className="text-[hsl(215,70%,25%)]">Tabela de Serviços</CardTitle>
               </div>
               <div className="text-right flex items-center gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Selecionado</p>
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-2xl font-bold text-[hsl(210,100%,50%)]">
                     {formatCurrency(total)}
                   </p>
                 </div>
                 <Button 
                   onClick={handleCriarPedido} 
-                  className="gap-2"
+                  className="gap-2 rounded-xl bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(142,76%,30%)] hover:from-[hsl(142,76%,32%)] hover:to-[hsl(142,76%,26%)]"
                   size="lg"
-                  disabled={!selectedClienteId || !hasServicosSelected}
+                  disabled={!selectedClienteId || !hasServicosSelected || addPedido.isPending}
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Cadastrar Pedido
+                  Concluir Serviço
                 </Button>
               </div>
             </div>
@@ -171,12 +182,12 @@ export const ServicosPage = () => {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead>Serviço</TableHead>
-                  <TableHead className="w-40">Categoria</TableHead>
-                  <TableHead className="w-32 text-right">Preço Unit.</TableHead>
-                  <TableHead className="w-32 text-center">Quantidade</TableHead>
-                  <TableHead className="w-32 text-right">Total</TableHead>
+                <TableRow className="bg-[hsl(215,70%,25%)]">
+                  <TableHead className="text-white font-bold">Serviço</TableHead>
+                  <TableHead className="w-40 text-white font-bold">Categoria</TableHead>
+                  <TableHead className="w-32 text-right text-white font-bold">Preço Unit.</TableHead>
+                  <TableHead className="w-32 text-center text-white font-bold">Quantidade</TableHead>
+                  <TableHead className="w-32 text-right text-white font-bold">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,8 +198,8 @@ export const ServicosPage = () => {
                       .map((servico) => (
                         <TableRow
                           key={servico.id}
-                          className={`hover:bg-muted/20 ${
-                            quantidades[servico.id] > 0 ? "bg-primary/5" : ""
+                          className={`hover:bg-[hsl(210,100%,98%)] ${
+                            quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""
                           }`}
                         >
                           <TableCell className="font-medium">
@@ -197,28 +208,29 @@ export const ServicosPage = () => {
                           <TableCell>
                             <Badge
                               variant="outline"
-                              className={getCategoryColor(servico.categoria)}
+                              className={`${getCategoryColor(servico.categoria)} rounded-lg`}
                             >
                               {servico.categoria}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="text-right font-mono font-semibold">
                             {formatCurrency(servico.preco)}
                           </TableCell>
                           <TableCell className="text-center">
                             <Input
                               type="number"
                               min="0"
+                              step="1"
                               value={quantidades[servico.id]}
                               onChange={(e) =>
                                 handleQuantidadeChange(servico.id, e.target.value)
                               }
-                              className="w-20 mx-auto text-center"
+                              className="w-20 mx-auto text-center rounded-xl"
                             />
                           </TableCell>
-                          <TableCell className="text-right font-mono font-semibold">
+                          <TableCell className="text-right font-mono font-bold">
                             {quantidades[servico.id] > 0 ? (
-                              <span className="text-primary">
+                              <span className="text-[hsl(210,100%,50%)]">
                                 {formatCurrency(
                                   servico.preco * quantidades[servico.id]
                                 )}
@@ -235,6 +247,11 @@ export const ServicosPage = () => {
                 ))}
               </TableBody>
             </Table>
+            <div className="p-4 bg-[hsl(210,100%,97%)] border-t">
+              <p className="text-sm text-muted-foreground text-center">
+                <strong>Obs:</strong> Quando não atingir 1kg, será cobrado por valor unitário.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
