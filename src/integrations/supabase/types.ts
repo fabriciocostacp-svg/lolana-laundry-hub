@@ -53,6 +53,8 @@ export type Database = {
           id: string
           itens: Json
           numero: string
+          pago: boolean | null
+          retirado: boolean | null
           status: string
           updated_at: string
           valor_total: number
@@ -65,6 +67,8 @@ export type Database = {
           id?: string
           itens?: Json
           numero: string
+          pago?: boolean | null
+          retirado?: boolean | null
           status?: string
           updated_at?: string
           valor_total?: number
@@ -77,6 +81,8 @@ export type Database = {
           id?: string
           itens?: Json
           numero?: string
+          pago?: boolean | null
+          retirado?: boolean | null
           status?: string
           updated_at?: string
           valor_total?: number
