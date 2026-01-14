@@ -211,7 +211,6 @@ export const PedidosPage = () => {
                               className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-8 px-2"
                               title="Retirado e Pago"
                             >
-                              <img src={lolanaLogo} alt="" className="h-5 w-5 mr-1" />
                               <Check className="h-4 w-4" />
                             </Button>
                             <Button
