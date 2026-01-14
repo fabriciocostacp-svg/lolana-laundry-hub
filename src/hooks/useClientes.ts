@@ -35,7 +35,7 @@ export const useClientes = () => {
     mutationFn: async (cliente: { nome: string; telefone: string; endereco: string }) => {
       const { data, error } = await supabase
         .from("clientes")
-        .insert([cliente])
+        .insert([{ ...cliente, numero: "" }])
         .select()
         .single();
 
