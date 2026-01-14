@@ -52,12 +52,13 @@ export const usePedidos = () => {
       const { data, error } = await supabase
         .from("pedidos")
         .insert([{
+          numero: "",
           cliente_id: cliente.id,
           cliente_nome: cliente.nome,
           cliente_telefone: cliente.telefone,
           valor_total: valorTotal,
           status: "lavando",
-          itens: itens as unknown as Record<string, unknown>[],
+          itens: JSON.parse(JSON.stringify(itens)),
         }])
         .select()
         .single();
