@@ -1,8 +1,10 @@
-import { Users, Package, ClipboardList, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Users, Package, ClipboardList, LogOut, Menu, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import lolanaLogo from "@/assets/lolana.png";
 
 const menuItems = [
@@ -11,7 +13,7 @@ const menuItems = [
   { icon: ClipboardList, label: "Pedidos", path: "/pedidos" },
 ];
 
-export const Sidebar = () => {
+const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -19,16 +21,17 @@ export const Sidebar = () => {
   const handleLogout = () => {
     logout();
     navigate("/login");
+    onItemClick?.();
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(210,100%,50%)] via-[hsl(210,100%,45%)] to-[hsl(215,70%,25%)] text-white flex flex-col shadow-2xl z-50">
+    <>
       <div className="p-4 border-b border-white/20">
         <div className="flex flex-col items-center">
           <img 
             src={lolanaLogo} 
             alt="Lolana Lavanderia" 
-            className="w-28 h-28 object-contain drop-shadow-lg"
+            className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-lg"
           />
         </div>
       </div>
@@ -41,6 +44,7 @@ export const Sidebar = () => {
               <li key={item.path}>
                 <Link
                   to={item.path}
+                  onClick={onItemClick}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                     "hover:bg-white/20 hover:shadow-lg",
@@ -69,6 +73,44 @@ export const Sidebar = () => {
           © 2024 Lolana Lavanderia
         </p>
       </div>
-    </aside>
+    </>
+  );
+};
+
+export const Sidebar = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Mobile Header with Hamburger */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] p-3 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-2">
+          <img 
+            src={lolanaLogo} 
+            alt="Lolana Lavanderia" 
+            className="w-10 h-10 object-contain"
+          />
+          <span className="text-white font-bold text-lg">Lolana</span>
+        </div>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent 
+            side="left" 
+            className="p-0 w-64 bg-gradient-to-b from-[hsl(210,100%,50%)] via-[hsl(210,100%,45%)] to-[hsl(215,70%,25%)] text-white border-0"
+          >
+            <SidebarContent onItemClick={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(210,100%,50%)] via-[hsl(210,100%,45%)] to-[hsl(215,70%,25%)] text-white flex-col shadow-2xl z-50">
+        <SidebarContent />
+      </aside>
+    </>
   );
 };
