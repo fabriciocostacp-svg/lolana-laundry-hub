@@ -8,6 +8,8 @@ export interface ClienteDB {
   nome: string;
   telefone: string;
   endereco: string;
+  cpf?: string;
+  cnpj?: string;
   created_at: string;
   updated_at: string;
 }
@@ -32,7 +34,7 @@ export const useClientes = () => {
   });
 
   const addCliente = useMutation({
-    mutationFn: async (cliente: { nome: string; telefone: string; endereco: string }) => {
+    mutationFn: async (cliente: { nome: string; telefone: string; endereco: string; cpf?: string; cnpj?: string }) => {
       const { data, error } = await supabase
         .from("clientes")
         .insert([{ ...cliente, numero: "" }])
@@ -52,7 +54,7 @@ export const useClientes = () => {
   });
 
   const updateCliente = useMutation({
-    mutationFn: async ({ id, ...cliente }: { id: string; nome: string; telefone: string; endereco: string }) => {
+    mutationFn: async ({ id, ...cliente }: { id: string; nome: string; telefone: string; endereco: string; cpf?: string; cnpj?: string }) => {
       const { error } = await supabase
         .from("clientes")
         .update(cliente)
