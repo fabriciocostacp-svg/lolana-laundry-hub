@@ -40,14 +40,13 @@ import {
 } from "@/components/ui/dialog";
 import { usePedidos, PedidoDB } from "@/hooks/usePedidos";
 import { StatusPedido } from "@/types";
-import { ClipboardList, MessageCircle, WashingMachine, Wind, Shirt, Check, X, Loader2, Trash2, Printer, DollarSign } from "lucide-react";
+import { ClipboardList, MessageCircle, WashingMachine, Shirt, Check, X, Loader2, Trash2, Printer, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { CupomImpressao } from "@/components/CupomImpressao";
 
 const statusConfig: Record<StatusPedido, { label: string; icon: React.ElementType; bgClass: string; textClass: string }> = {
   lavando: { label: "Lavando", icon: WashingMachine, bgClass: "bg-[hsl(210,100%,50%)]", textClass: "text-white" },
   passando: { label: "Passando", icon: Shirt, bgClass: "bg-[hsl(38,92%,50%)]", textClass: "text-white" },
-  secando: { label: "Secando", icon: Wind, bgClass: "bg-[hsl(199,89%,48%)]", textClass: "text-white" },
   pronto: { label: "Pronto", icon: Check, bgClass: "bg-[hsl(142,76%,36%)]", textClass: "text-white" },
 };
 

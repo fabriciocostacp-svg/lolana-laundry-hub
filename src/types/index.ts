@@ -17,7 +17,7 @@ export interface ItemPedido {
   quantidade: number;
 }
 
-export type StatusPedido = 'lavando' | 'passando' | 'secando' | 'pronto';
+export type StatusPedido = 'lavando' | 'passando' | 'pronto';
 
 export interface Pedido {
   id: string;
