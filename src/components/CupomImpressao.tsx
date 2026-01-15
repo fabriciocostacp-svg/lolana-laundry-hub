@@ -53,7 +53,11 @@ export const CupomImpressao = forwardRef<HTMLDivElement, CupomImpressaoProps>(
           />
           <h1 className="font-bold text-lg">LOLANA LAVANDERIA</h1>
           <p className="text-[10px]">Prestação de Serviços</p>
+          <p className="text-[10px]">CNPJ: 31.338.827/0001-33</p>
+          <p className="text-[10px]">Rua Cinco nº752 Vila Garbi</p>
+          <p className="text-[10px]">(esquina com Av. 6)</p>
           <p className="text-[10px]">📞 (19) 99757-9086</p>
+          <p className="text-[10px] mt-1">Seg a Sex: 09:00-12:00 | 14:00-18:00</p>
         </div>
 
         <div className="border-t border-dashed border-black my-2" />
