@@ -35,8 +35,8 @@ export const ServicosPage = () => {
     servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [descontoPercentual, setDescontoPercentual] = useState<string>("");
-  const [descontoValor, setDescontoValor] = useState<string>("");
+  const [desconto, setDesconto] = useState<string>("");
+  const [tipoDesconto, setTipoDesconto] = useState<"percentual" | "valor">("percentual");
   const [taxaEntrega, setTaxaEntrega] = useState<string>("");
 
   const handleQuantidadeChange = (id: string, value: string) => {
@@ -60,22 +60,34 @@ export const ServicosPage = () => {
     }, 0);
   }, [quantidades]);
 
-  const descontoPercentualNum = parseFloat(descontoPercentual) || 0;
-  const descontoValorNum = parseFloat(descontoValor) || 0;
+  const descontoNum = parseFloat(desconto) || 0;
   const taxaEntregaNum = parseInt(taxaEntrega) || 0;
   
-  const valorDescontoPercentual = (subtotal * descontoPercentualNum) / 100;
-  const descontoTotal = valorDescontoPercentual + descontoValorNum;
+  const descontoTotal = tipoDesconto === "percentual" 
+    ? (subtotal * descontoNum) / 100 
+    : descontoNum;
   const total = Math.max(0, subtotal - descontoTotal + taxaEntregaNum);
 
   const categorias = useMemo(() => {
     return [...new Set(servicosFixos.map((s) => s.categoria))];
   }, []);
 
-  // Filtrar serviços pela busca
+  // Filtrar serviços pela busca (nome, categoria ou número)
   const servicosFiltrados = useMemo(() => {
     if (!searchTerm.trim()) return servicosFixos;
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase().trim();
+    
+    // Verificar se é busca por números separados por vírgula
+    const numeros = term.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    
+    if (numeros.length > 0) {
+      return servicosFixos.filter((s, index) => 
+        numeros.includes(index + 1) ||
+        s.nome.toLowerCase().includes(term) ||
+        s.categoria.toLowerCase().includes(term)
+      );
+    }
+    
     return servicosFixos.filter(
       (s) =>
         s.nome.toLowerCase().includes(term) ||
@@ -130,16 +142,16 @@ export const ServicosPage = () => {
     addPedido.mutate({ 
       cliente, 
       itens,
-      descontoPercentual: descontoPercentualNum,
-      descontoValor: descontoValorNum,
+      descontoPercentual: tipoDesconto === "percentual" ? descontoNum : 0,
+      descontoValor: tipoDesconto === "valor" ? descontoNum : 0,
       taxaEntrega: taxaEntregaNum
     });
     
     // Reset form
     setSelectedClienteId("");
     setQuantidades(servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {}));
-    setDescontoPercentual("");
-    setDescontoValor("");
+    setDesconto("");
+    setTipoDesconto("percentual");
     setTaxaEntrega("");
     setSearchTerm("");
   };
@@ -211,13 +223,13 @@ export const ServicosPage = () => {
         {/* Card de Busca de Serviços */}
         <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
           <CardContent className="py-4">
-            <div className="flex items-center gap-3">
-              <Search className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
               <Input
-                placeholder="Buscar serviço por nome ou categoria..."
+                placeholder="Buscar por nome, categoria ou número (ex: 1,4,5)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 rounded-xl"
+                className="flex-1 rounded-xl text-sm sm:text-base"
               />
             </div>
           </CardContent>
@@ -232,40 +244,36 @@ export const ServicosPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Percent className="h-4 w-4" />
-                  Desconto (%)
+                  Desconto
                 </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  placeholder="0"
-                  value={descontoPercentual}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9.]/g, "");
-                    setDescontoPercentual(value);
-                  }}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Desconto (R$)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0,00"
-                  value={descontoValor}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9.]/g, "");
-                    setDescontoValor(value);
-                  }}
-                  className="rounded-xl"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max={tipoDesconto === "percentual" ? 100 : undefined}
+                    step="0.01"
+                    placeholder="0"
+                    value={desconto}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, "");
+                      setDesconto(value);
+                    }}
+                    className="rounded-xl flex-1"
+                  />
+                  <Select value={tipoDesconto} onValueChange={(value: "percentual" | "valor") => setTipoDesconto(value)}>
+                    <SelectTrigger className="w-24 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="percentual">%</SelectItem>
+                      <SelectItem value="valor">R$</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
@@ -302,7 +310,7 @@ export const ServicosPage = () => {
                   <p className="text-sm text-muted-foreground">Subtotal: {formatCurrency(subtotal)}</p>
                   {descontoTotal > 0 && (
                     <p className="text-sm text-red-500">
-                      Desconto: -{formatCurrency(descontoTotal)}
+                      Desconto{tipoDesconto === "percentual" ? ` (${desconto}%)` : ""}: -{formatCurrency(descontoTotal)}
                     </p>
                   )}
                   {taxaEntregaNum > 0 && (
