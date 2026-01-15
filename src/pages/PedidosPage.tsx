@@ -56,7 +56,7 @@ export const PedidosPage = () => {
     updatePedidoStatus.mutate({ id: pedido.id, status: newStatus });
     
     if (newStatus === "pronto") {
-      const mensagem = `Olá ${pedido.cliente_nome}! 😊\n\nSeu pedido da Lolana Lavanderia está pronto para retirada.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\nAguardamos você!`;
+      const mensagem = `Olá ${pedido.cliente_nome}! 😊\n\nSeu pedido da Lolana Lavanderia está pronto para retirada.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\nAguardamos você!\n\n📞 Contato: (19) 99757-9086`;
       const telefone = pedido.cliente_telefone.replace(/\D/g, "");
       const whatsappUrl = `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`;
       window.open(whatsappUrl, "_blank");
@@ -219,7 +219,7 @@ export const PedidosPage = () => {
                           size="sm"
                           className="flex-1 gap-2 rounded-xl"
                           onClick={() => {
-                            const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.`;
+                            const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\n📞 Contato: (19) 99757-9086`;
                             const telefone = pedido.cliente_telefone.replace(/\D/g, "");
                             window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, "_blank");
                           }}
@@ -385,7 +385,7 @@ export const PedidosPage = () => {
                                 size="icon"
                                 className="hover:bg-[hsl(142,76%,36%)]/20 hover:text-[hsl(142,76%,36%)] rounded-xl"
                                 onClick={() => {
-                                  const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.`;
+                                  const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\n📞 Contato: (19) 99757-9086`;
                                   const telefone = pedido.cliente_telefone.replace(/\D/g, "");
                                   window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, "_blank");
                                 }}
