@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useClientes, ClienteDB } from "@/hooks/useClientes";
-import { Plus, Pencil, Trash2, Users, Loader2, Building2, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Loader2, Building2, User, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export const ClientesPage = () => {
@@ -56,15 +56,39 @@ export const ClientesPage = () => {
     cnpj: "",
   });
 
+  // Duplicate warning state
+  const [duplicateWarning, setDuplicateWarning] = useState<ClienteDB | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+
   const resetForm = () => {
     setFormData({ nome: "", telefone: "", endereco: "", cpf: "", cnpj: "" });
     setEditingCliente(null);
     setTipoCliente("pessoa");
+    setDuplicateWarning(null);
+  };
+
+  const checkDuplicate = () => {
+    if (editingCliente) return null;
+    
+    const duplicate = clientes.find(
+      (c) =>
+        c.nome.toLowerCase().trim() === formData.nome.toLowerCase().trim() &&
+        c.endereco.toLowerCase().trim() === formData.endereco.toLowerCase().trim()
+    );
+    return duplicate || null;
   };
 
   const handleSubmit = () => {
     if (!formData.nome.trim() || !formData.telefone.trim() || !formData.endereco.trim()) {
       toast.error("Nome, telefone e endereço são obrigatórios!");
+      return;
+    }
+
+    // Check for duplicate
+    const duplicate = checkDuplicate();
+    if (duplicate && !duplicateWarning) {
+      setDuplicateWarning(duplicate);
+      setShowDuplicateDialog(true);
       return;
     }
 
@@ -82,6 +106,22 @@ export const ClientesPage = () => {
       addCliente.mutate(clienteData);
     }
 
+    resetForm();
+    setIsOpen(false);
+  };
+
+  const handleConfirmDuplicate = () => {
+    setShowDuplicateDialog(false);
+    
+    const clienteData = {
+      nome: formData.nome,
+      telefone: formData.telefone,
+      endereco: formData.endereco,
+      cpf: tipoCliente === "pessoa" ? formData.cpf : "",
+      cnpj: tipoCliente === "empresa" ? formData.cnpj : "",
+    };
+
+    addCliente.mutate(clienteData);
     resetForm();
     setIsOpen(false);
   };
@@ -402,6 +442,38 @@ export const ClientesPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Duplicate Client Warning Dialog */}
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent className="rounded-2xl mx-4 max-w-[calc(100vw-2rem)] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Cliente Já Existe
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Já existe um cliente cadastrado com o mesmo nome e endereço:</p>
+              {duplicateWarning && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+                  <p><strong>Nome:</strong> {duplicateWarning.nome}</p>
+                  <p><strong>Endereço:</strong> {duplicateWarning.endereco}</p>
+                  <p><strong>Telefone:</strong> {duplicateWarning.telefone}</p>
+                </div>
+              )}
+              <p className="font-medium">Deseja criar outro cliente mesmo assim?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDuplicate}
+              className="bg-amber-500 hover:bg-amber-600 rounded-xl"
+            >
+              Criar Mesmo Assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 };

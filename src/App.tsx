@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ClientesPage } from "./pages/ClientesPage";
 import { ServicosPage } from "./pages/ServicosPage";
 import { PedidosPage } from "./pages/PedidosPage";
+import { FuncionariosPage } from "./pages/FuncionariosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PedidosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/funcionarios"
+              element={
+                <ProtectedRoute>
+                  <FuncionariosPage />
                 </ProtectedRoute>
               }
             />

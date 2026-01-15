@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Package, ClipboardList, LogOut, Menu, X } from "lucide-react";
+import { Users, Package, ClipboardList, LogOut, Menu, UserCog } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import lolanaLogo from "@/assets/lolana.png";
 
-const menuItems = [
-  { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: Package, label: "Serviços", path: "/servicos" },
-  { icon: ClipboardList, label: "Pedidos", path: "/pedidos" },
-];
-
 const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, currentUser } = useAuth();
+
+  const menuItems = [
+    { icon: Users, label: "Clientes", path: "/clientes" },
+    { icon: Package, label: "Serviços", path: "/servicos" },
+    { icon: ClipboardList, label: "Pedidos", path: "/pedidos" },
+    ...(currentUser?.permissions.is_admin ? [{ icon: UserCog, label: "Funcionários", path: "/funcionarios" }] : []),
+  ];
 
   const handleLogout = () => {
     logout();
@@ -61,6 +62,11 @@ const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => {
       </nav>
 
       <div className="p-4 border-t border-white/20 space-y-4">
+        {currentUser && (
+          <div className="text-xs text-white/70 text-center mb-2">
+            Olá, <span className="font-semibold">{currentUser.nome}</span>
+          </div>
+        )}
         <Button
           variant="ghost"
           onClick={handleLogout}

@@ -5,8 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Lock, User } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Lock, User, HelpCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import lolanaLogo from "@/assets/lolana.png";
 
 export const LoginPage = () => {
@@ -16,19 +25,62 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Forgot password states
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<"phone" | "result">("phone");
+  const [forgotPhone, setForgotPhone] = useState("");
+  const [foundUser, setFoundUser] = useState<{ nome: string; usuario: string; senha: string } | null>(null);
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (login(username, password)) {
-        toast.success("Bem-vindo à Lolana Lavanderia!");
-        navigate("/clientes");
+    const success = await login(username, password);
+    if (success) {
+      toast.success("Bem-vindo à Lolana Lavanderia!");
+      navigate("/clientes");
+    } else {
+      toast.error("Usuário ou senha incorretos!");
+    }
+    setIsLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotPhone.trim()) {
+      toast.error("Digite o número de telefone!");
+      return;
+    }
+
+    setIsForgotLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("nome, usuario, senha")
+        .eq("telefone", forgotPhone)
+        .eq("ativo", true)
+        .single();
+
+      if (error || !data) {
+        toast.error("Telefone não encontrado no sistema!");
+        setFoundUser(null);
       } else {
-        toast.error("Usuário ou senha incorretos!");
+        setFoundUser(data);
+        setForgotStep("result");
+        toast.success("Usuário encontrado!");
       }
-      setIsLoading(false);
-    }, 500);
+    } catch {
+      toast.error("Erro ao buscar usuário!");
+    }
+
+    setIsForgotLoading(false);
+  };
+
+  const resetForgotDialog = () => {
+    setForgotStep("phone");
+    setForgotPhone("");
+    setFoundUser(null);
   };
 
   return (
@@ -108,8 +160,100 @@ export const LoginPage = () => {
               )}
             </Button>
           </form>
+
+          <div className="mt-4 text-center">
+            <Button
+              variant="link"
+              onClick={() => {
+                resetForgotDialog();
+                setForgotOpen(true);
+              }}
+              className="text-[hsl(210,100%,50%)] hover:text-[hsl(210,100%,40%)] gap-1"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Esqueci minha senha
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={forgotOpen} onOpenChange={(open) => {
+        setForgotOpen(open);
+        if (!open) resetForgotDialog();
+      }}>
+        <DialogContent className="rounded-2xl mx-4 max-w-[calc(100vw-2rem)] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[hsl(215,70%,25%)] flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Recuperar Senha
+            </DialogTitle>
+          </DialogHeader>
+
+          {forgotStep === "phone" ? (
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Digite o número de telefone cadastrado para recuperar sua senha.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="forgotPhone">Telefone Cadastrado</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="forgotPhone"
+                    placeholder="(00) 00000-0000"
+                    value={forgotPhone}
+                    onChange={(e) => setForgotPhone(e.target.value)}
+                    className="pl-10 rounded-xl"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+                <DialogClose asChild>
+                  <Button variant="outline" className="rounded-xl w-full sm:w-auto">Cancelar</Button>
+                </DialogClose>
+                <Button
+                  onClick={handleForgotPassword}
+                  className="rounded-xl bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] w-full sm:w-auto"
+                  disabled={isForgotLoading}
+                >
+                  {isForgotLoading ? "Buscando..." : "Buscar"}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              {foundUser ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                    <p className="text-sm text-green-800 font-medium mb-2">Usuário encontrado!</p>
+                    <div className="space-y-1 text-sm">
+                      <p><strong>Nome:</strong> {foundUser.nome}</p>
+                      <p><strong>Usuário:</strong> {foundUser.usuario}</p>
+                      <p><strong>Senha:</strong> {foundUser.senha}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Por segurança, altere sua senha após fazer login.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-800">Telefone não encontrado no sistema.</p>
+                </div>
+              )}
+              <DialogFooter>
+                <Button
+                  onClick={() => setForgotOpen(false)}
+                  className="rounded-xl bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] w-full"
+                >
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

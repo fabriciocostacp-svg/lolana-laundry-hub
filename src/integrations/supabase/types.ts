@@ -50,6 +50,51 @@ export type Database = {
         }
         Relationships: []
       }
+      funcionarios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          is_admin: boolean
+          nome: string
+          pode_cobrar_taxa: boolean
+          pode_dar_desconto: boolean
+          pode_pagar_depois: boolean
+          senha: string
+          telefone: string | null
+          updated_at: string
+          usuario: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          nome: string
+          pode_cobrar_taxa?: boolean
+          pode_dar_desconto?: boolean
+          pode_pagar_depois?: boolean
+          senha: string
+          telefone?: string | null
+          updated_at?: string
+          usuario: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          nome?: string
+          pode_cobrar_taxa?: boolean
+          pode_dar_desconto?: boolean
+          pode_pagar_depois?: boolean
+          senha?: string
+          telefone?: string | null
+          updated_at?: string
+          usuario?: string
+        }
+        Relationships: []
+      }
       pedidos: {
         Row: {
           cliente_cnpj: string | null
