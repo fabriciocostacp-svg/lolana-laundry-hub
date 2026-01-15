@@ -1,19 +1,21 @@
-// Secure password hashing using bcrypt (designed for passwords)
+// Secure password hashing using bcrypt (Deno-compatible without Workers)
 import * as bcrypt from 'https://deno.land/x/bcrypt@v0.4.1/mod.ts';
 
-// Cost factor: 12 is a good balance between security and performance
-// Higher = more secure but slower (each increment doubles the time)
-const BCRYPT_COST = 12;
+// Cost factor: 10 is a good balance for edge functions
+// Higher = more secure but slower
+const BCRYPT_COST = 10;
 
 export async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(BCRYPT_COST);
-  return await bcrypt.hash(password, salt);
+  // Use synchronous version to avoid Worker issues in Deno Deploy
+  const salt = bcrypt.genSaltSync(BCRYPT_COST);
+  return bcrypt.hashSync(password, salt);
 }
 
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
   // Check if it's a bcrypt hash (starts with $2)
   if (storedHash.startsWith('$2')) {
-    return await bcrypt.compare(password, storedHash);
+    // Use synchronous version to avoid Worker issues in Deno Deploy
+    return bcrypt.compareSync(password, storedHash);
   }
   
   // Check if it's legacy SHA-256 format (salt:hash)
