@@ -111,17 +111,17 @@ export const ServicosPage = () => {
 
   return (
     <MainLayout title="Serviços">
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Card de Seleção de Cliente */}
         <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] text-white rounded-t-2xl py-4">
             <div className="flex items-center gap-3">
-              <UserCheck className="h-6 w-6" />
-              <CardTitle className="text-white">Selecionar Cliente</CardTitle>
+              <UserCheck className="h-5 w-5 md:h-6 md:w-6" />
+              <CardTitle className="text-white text-lg md:text-xl">Selecionar Cliente</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="py-4">
-            <div className="flex items-end gap-4">
+            <div className="flex flex-col md:flex-row md:items-end gap-4">
               <div className="flex-1 space-y-2">
                 <Label>Cliente *</Label>
                 <Select value={selectedClienteId} onValueChange={setSelectedClienteId}>
@@ -155,21 +155,21 @@ export const ServicosPage = () => {
         {/* Tabela de Serviços */}
         <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
           <CardHeader className="bg-[hsl(210,100%,97%)] rounded-t-2xl">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Package className="h-6 w-6 text-[hsl(210,100%,50%)]" />
-                <CardTitle className="text-[hsl(215,70%,25%)]">Tabela de Serviços</CardTitle>
+                <Package className="h-5 w-5 md:h-6 md:w-6 text-[hsl(210,100%,50%)]" />
+                <CardTitle className="text-[hsl(215,70%,25%)] text-lg md:text-xl">Tabela de Serviços</CardTitle>
               </div>
-              <div className="text-right flex items-center gap-4">
-                <div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                <div className="text-left sm:text-right">
                   <p className="text-sm text-muted-foreground">Total Selecionado</p>
-                  <p className="text-2xl font-bold text-[hsl(210,100%,50%)]">
+                  <p className="text-xl md:text-2xl font-bold text-[hsl(210,100%,50%)]">
                     {formatCurrency(total)}
                   </p>
                 </div>
                 <Button 
                   onClick={handleCriarPedido} 
-                  className="gap-2 rounded-xl bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(142,76%,30%)] hover:from-[hsl(142,76%,32%)] hover:to-[hsl(142,76%,26%)]"
+                  className="gap-2 rounded-xl bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(142,76%,30%)] hover:from-[hsl(142,76%,32%)] hover:to-[hsl(142,76%,26%)] w-full sm:w-auto"
                   size="lg"
                   disabled={!selectedClienteId || !hasServicosSelected || addPedido.isPending}
                 >
@@ -180,73 +180,125 @@ export const ServicosPage = () => {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-[hsl(215,70%,25%)]">
-                  <TableHead className="text-white font-bold">Serviço</TableHead>
-                  <TableHead className="w-40 text-white font-bold">Categoria</TableHead>
-                  <TableHead className="w-32 text-right text-white font-bold">Preço Unit.</TableHead>
-                  <TableHead className="w-32 text-center text-white font-bold">Quantidade</TableHead>
-                  <TableHead className="w-32 text-right text-white font-bold">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categorias.map((categoria) => (
-                  <>
-                    {servicosFixos
-                      .filter((s) => s.categoria === categoria)
-                      .map((servico) => (
-                        <TableRow
-                          key={servico.id}
-                          className={`hover:bg-[hsl(210,100%,98%)] ${
-                            quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""
-                          }`}
-                        >
-                          <TableCell className="font-medium">
-                            {servico.nome}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={`${getCategoryColor(servico.categoria)} rounded-lg`}
-                            >
-                              {servico.categoria}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-semibold">
-                            {formatCurrency(servico.preco)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Input
-                              type="number"
-                              min="0"
-                              step="1"
-                              value={quantidades[servico.id]}
-                              onChange={(e) =>
-                                handleQuantidadeChange(servico.id, e.target.value)
-                              }
-                              className="w-20 mx-auto text-center rounded-xl"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-bold">
-                            {quantidades[servico.id] > 0 ? (
-                              <span className="text-[hsl(210,100%,50%)]">
-                                {formatCurrency(
-                                  servico.preco * quantidades[servico.id]
-                                )}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">
-                                {formatCurrency(0)}
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </>
-                ))}
-              </TableBody>
-            </Table>
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y">
+              {categorias.map((categoria) => (
+                servicosFixos
+                  .filter((s) => s.categoria === categoria)
+                  .map((servico) => (
+                    <div 
+                      key={servico.id} 
+                      className={`p-4 space-y-3 ${quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <p className="font-medium">{servico.nome}</p>
+                          <Badge
+                            variant="outline"
+                            className={`${getCategoryColor(servico.categoria)} rounded-lg text-xs`}
+                          >
+                            {servico.categoria}
+                          </Badge>
+                        </div>
+                        <p className="font-mono font-semibold text-right">
+                          {formatCurrency(servico.preco)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm">Qtd:</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={quantidades[servico.id]}
+                            onChange={(e) =>
+                              handleQuantidadeChange(servico.id, e.target.value)
+                            }
+                            className="w-20 text-center rounded-xl"
+                          />
+                        </div>
+                        {quantidades[servico.id] > 0 && (
+                          <p className="font-mono font-bold text-[hsl(210,100%,50%)]">
+                            {formatCurrency(servico.preco * quantidades[servico.id])}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[hsl(215,70%,25%)]">
+                    <TableHead className="text-white font-bold">Serviço</TableHead>
+                    <TableHead className="w-40 text-white font-bold">Categoria</TableHead>
+                    <TableHead className="w-32 text-right text-white font-bold">Preço Unit.</TableHead>
+                    <TableHead className="w-32 text-center text-white font-bold">Quantidade</TableHead>
+                    <TableHead className="w-32 text-right text-white font-bold">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categorias.map((categoria) => (
+                    <>
+                      {servicosFixos
+                        .filter((s) => s.categoria === categoria)
+                        .map((servico) => (
+                          <TableRow
+                            key={servico.id}
+                            className={`hover:bg-[hsl(210,100%,98%)] ${
+                              quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""
+                            }`}
+                          >
+                            <TableCell className="font-medium">
+                              {servico.nome}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={`${getCategoryColor(servico.categoria)} rounded-lg`}
+                              >
+                                {servico.categoria}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              {formatCurrency(servico.preco)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={quantidades[servico.id]}
+                                onChange={(e) =>
+                                  handleQuantidadeChange(servico.id, e.target.value)
+                                }
+                                className="w-20 mx-auto text-center rounded-xl"
+                              />
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-bold">
+                              {quantidades[servico.id] > 0 ? (
+                                <span className="text-[hsl(210,100%,50%)]">
+                                  {formatCurrency(
+                                    servico.preco * quantidades[servico.id]
+                                  )}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  {formatCurrency(0)}
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             <div className="p-4 bg-[hsl(210,100%,97%)] border-t">
               <p className="text-sm text-muted-foreground text-center">
                 <strong>Obs:</strong> Quando não atingir 1kg, será cobrado por valor unitário.

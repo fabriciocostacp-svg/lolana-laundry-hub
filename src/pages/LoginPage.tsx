@@ -35,30 +35,30 @@ export const LoginPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-[hsl(210,100%,50%)] via-[hsl(210,100%,45%)] to-[hsl(215,70%,25%)] flex items-center justify-center p-4">
       {/* Bubbles decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-16 h-16 bg-white/10 rounded-full animate-bounce" style={{ animationDuration: "3s" }} />
-        <div className="absolute top-40 right-20 w-8 h-8 bg-white/15 rounded-full animate-bounce" style={{ animationDuration: "2s", animationDelay: "0.5s" }} />
-        <div className="absolute bottom-32 left-1/4 w-12 h-12 bg-white/10 rounded-full animate-bounce" style={{ animationDuration: "4s", animationDelay: "1s" }} />
-        <div className="absolute top-1/3 right-1/4 w-6 h-6 bg-white/20 rounded-full animate-bounce" style={{ animationDuration: "2.5s" }} />
-        <div className="absolute bottom-20 right-10 w-10 h-10 bg-white/10 rounded-full animate-bounce" style={{ animationDuration: "3.5s", animationDelay: "0.3s" }} />
+        <div className="absolute top-20 left-10 w-12 h-12 md:w-16 md:h-16 bg-white/10 rounded-full animate-bounce" style={{ animationDuration: "3s" }} />
+        <div className="absolute top-40 right-20 w-6 h-6 md:w-8 md:h-8 bg-white/15 rounded-full animate-bounce" style={{ animationDuration: "2s", animationDelay: "0.5s" }} />
+        <div className="absolute bottom-32 left-1/4 w-8 h-8 md:w-12 md:h-12 bg-white/10 rounded-full animate-bounce" style={{ animationDuration: "4s", animationDelay: "1s" }} />
+        <div className="absolute top-1/3 right-1/4 w-4 h-4 md:w-6 md:h-6 bg-white/20 rounded-full animate-bounce" style={{ animationDuration: "2.5s" }} />
+        <div className="absolute bottom-20 right-10 w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-full animate-bounce" style={{ animationDuration: "3.5s", animationDelay: "0.3s" }} />
       </div>
 
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/95 backdrop-blur-sm rounded-3xl overflow-hidden">
-        <CardHeader className="text-center pb-2 pt-8">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/95 backdrop-blur-sm rounded-3xl overflow-hidden mx-4">
+        <CardHeader className="text-center pb-2 pt-6 md:pt-8">
           <div className="flex justify-center mb-4">
             <img 
               src={lolanaLogo} 
               alt="Lolana Lavanderia" 
-              className="w-40 h-40 object-contain drop-shadow-lg"
+              className="w-28 h-28 md:w-40 md:h-40 object-contain drop-shadow-lg"
             />
           </div>
-          <h1 className="text-2xl font-bold text-[hsl(215,70%,25%)]">
+          <h1 className="text-xl md:text-2xl font-bold text-[hsl(215,70%,25%)]">
             Bem-vindo!
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs md:text-sm">
             Faça login para acessar o sistema
           </p>
         </CardHeader>
-        <CardContent className="px-8 pb-8">
+        <CardContent className="px-6 md:px-8 pb-6 md:pb-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-[hsl(215,70%,25%)]">
