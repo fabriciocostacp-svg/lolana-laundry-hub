@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import { verifyPassword, generateSessionToken, hashPassword } from '../_shared/crypto.ts';
+import { verifyPassword, generateSessionToken, hashPassword, validatePasswordStrength } from '../_shared/crypto.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -49,13 +49,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // If password is legacy (plain text), upgrade it
-    if (!funcionario.senha.includes(':')) {
+    // If password is legacy (plain text or SHA-256), upgrade to bcrypt
+    if (!funcionario.senha.startsWith('$2')) {
       const hashedPassword = await hashPassword(sanitizedSenha);
       await supabase
         .from('funcionarios')
         .update({ senha: hashedPassword })
         .eq('id', funcionario.id);
+      console.log(`Password upgraded to bcrypt for user: ${funcionario.usuario}`);
     }
 
     // Generate session token
