@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -337,36 +337,102 @@ export const ServicosPage = () => {
           <CardContent className="p-0">
             {/* Mobile Cards View */}
             <div className="block md:hidden divide-y">
-              {categoriasFiltradas.map((categoria) => (
-                servicosFiltrados
-                  .filter((s) => s.categoria === categoria)
-                  .map((servico) => (
-                    <div 
-                      key={servico.id} 
-                      className={`p-4 space-y-3 ${quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-muted-foreground">
-                              #{servicoIndex[servico.id]}
-                            </span>
-                            <p className="font-medium">{servico.nome}</p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className={`${getCategoryColor(servico.categoria)} rounded-lg text-xs`}
-                          >
-                            {servico.categoria}
-                          </Badge>
-                        </div>
-                        <p className="font-mono font-semibold text-right">
-                          {formatCurrency(servico.preco)}
-                        </p>
+              {servicosFiltrados.map((servico) => (
+                <div 
+                  key={servico.id} 
+                  className={`p-4 space-y-3 ${quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          #{servicoIndex[servico.id]}
+                        </span>
+                        <p className="font-medium">{servico.nome}</p>
                       </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm">Qtd:</Label>
+                      <Badge
+                        variant="outline"
+                        className={`${getCategoryColor(servico.categoria)} rounded-lg text-xs`}
+                      >
+                        {servico.categoria}
+                      </Badge>
+                    </div>
+                    <p className="font-mono font-semibold text-right">
+                      {formatCurrency(servico.preco)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm">Qtd:</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={quantidades[servico.id]}
+                        onChange={(e) =>
+                          handleQuantidadeChange(servico.id, e.target.value)
+                        }
+                        className="w-20 text-center rounded-xl"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAddFromSearch(servico.id)}
+                        className="rounded-xl"
+                      >
+                        +1
+                      </Button>
+                    </div>
+                    {quantidades[servico.id] > 0 && (
+                      <p className="font-mono font-bold text-[hsl(210,100%,50%)]">
+                        {formatCurrency(servico.preco * quantidades[servico.id])}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[hsl(215,70%,25%)]">
+                    <TableHead className="w-16 text-white font-bold">#</TableHead>
+                    <TableHead className="text-white font-bold">Serviço</TableHead>
+                    <TableHead className="w-40 text-white font-bold">Categoria</TableHead>
+                    <TableHead className="w-32 text-right text-white font-bold">Preço Unit.</TableHead>
+                    <TableHead className="w-40 text-center text-white font-bold">Quantidade</TableHead>
+                    <TableHead className="w-32 text-right text-white font-bold">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {servicosFiltrados.map((servico) => (
+                    <TableRow
+                      key={servico.id}
+                      className={`hover:bg-[hsl(210,100%,98%)] ${
+                        quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""
+                      }`}
+                    >
+                      <TableCell className="font-mono text-muted-foreground">
+                        #{servicoIndex[servico.id]}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {servico.nome}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`${getCategoryColor(servico.categoria)} rounded-lg`}
+                        >
+                          {servico.categoria}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold">
+                        {formatCurrency(servico.preco)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <Input
                             type="number"
                             min="0"
@@ -386,97 +452,21 @@ export const ServicosPage = () => {
                             +1
                           </Button>
                         </div>
-                        {quantidades[servico.id] > 0 && (
-                          <p className="font-mono font-bold text-[hsl(210,100%,50%)]">
-                            {formatCurrency(servico.preco * quantidades[servico.id])}
-                          </p>
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-bold">
+                        {quantidades[servico.id] > 0 ? (
+                          <span className="text-[hsl(210,100%,50%)]">
+                            {formatCurrency(
+                              servico.preco * quantidades[servico.id]
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {formatCurrency(0)}
+                          </span>
                         )}
-                      </div>
-                    </div>
-                  ))
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-[hsl(215,70%,25%)]">
-                    <TableHead className="w-16 text-white font-bold">#</TableHead>
-                    <TableHead className="text-white font-bold">Serviço</TableHead>
-                    <TableHead className="w-40 text-white font-bold">Categoria</TableHead>
-                    <TableHead className="w-32 text-right text-white font-bold">Preço Unit.</TableHead>
-                    <TableHead className="w-40 text-center text-white font-bold">Quantidade</TableHead>
-                    <TableHead className="w-32 text-right text-white font-bold">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categoriasFiltradas.map((categoria) => (
-                    <>
-                      {servicosFiltrados
-                        .filter((s) => s.categoria === categoria)
-                        .map((servico) => (
-                          <TableRow
-                            key={servico.id}
-                            className={`hover:bg-[hsl(210,100%,98%)] ${
-                              quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""
-                            }`}
-                          >
-                            <TableCell className="font-mono text-muted-foreground">
-                              #{servicoIndex[servico.id]}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {servico.nome}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={`${getCategoryColor(servico.categoria)} rounded-lg`}
-                              >
-                                {servico.categoria}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
-                              {formatCurrency(servico.preco)}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step="1"
-                                  value={quantidades[servico.id]}
-                                  onChange={(e) =>
-                                    handleQuantidadeChange(servico.id, e.target.value)
-                                  }
-                                  className="w-20 text-center rounded-xl"
-                                />
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAddFromSearch(servico.id)}
-                                  className="rounded-xl"
-                                >
-                                  +1
-                                </Button>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-mono font-bold">
-                              {quantidades[servico.id] > 0 ? (
-                                <span className="text-[hsl(210,100%,50%)]">
-                                  {formatCurrency(
-                                    servico.preco * quantidades[servico.id]
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">
-                                  {formatCurrency(0)}
-                                </span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </>
+                      </TableCell>
+                    </TableRow>
                   ))}
                 </TableBody>
               </Table>
