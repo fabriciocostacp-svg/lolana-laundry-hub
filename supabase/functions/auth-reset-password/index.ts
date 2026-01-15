@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import { generateResetToken, hashPassword } from '../_shared/crypto.ts';
+import { generateResetToken, hashPassword, validatePasswordStrength } from '../_shared/crypto.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -72,9 +72,11 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (novaSenha.length < 4) {
+      // Validate password strength
+      const passwordValidation = validatePasswordStrength(novaSenha);
+      if (!passwordValidation.valid) {
         return new Response(
-          JSON.stringify({ error: 'Senha deve ter pelo menos 4 caracteres' }),
+          JSON.stringify({ error: passwordValidation.message }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

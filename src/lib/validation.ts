@@ -55,8 +55,16 @@ export const funcionarioSchema = z.object({
     .max(100, 'Usuário deve ter no máximo 100 caracteres')
     .regex(/^[a-zA-Z0-9_]+$/, 'Usuário deve conter apenas letras, números e underscore'),
   senha: z.string()
-    .min(4, 'Senha deve ter pelo menos 4 caracteres')
+    .min(8, 'Senha deve ter pelo menos 8 caracteres')
     .max(100, 'Senha deve ter no máximo 100 caracteres')
+    .refine(
+      (val) => !val || /\d/.test(val),
+      'Senha deve conter pelo menos um número'
+    )
+    .refine(
+      (val) => !val || /[a-zA-Z]/.test(val),
+      'Senha deve conter pelo menos uma letra'
+    )
     .optional(),
   telefone: z.string()
     .optional()
@@ -93,8 +101,16 @@ export const resetPasswordRequestSchema = z.object({
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token é obrigatório'),
   novaSenha: z.string()
-    .min(4, 'Senha deve ter pelo menos 4 caracteres')
-    .max(100, 'Senha deve ter no máximo 100 caracteres'),
+    .min(8, 'Senha deve ter pelo menos 8 caracteres')
+    .max(100, 'Senha deve ter no máximo 100 caracteres')
+    .refine(
+      (val) => /\d/.test(val),
+      'Senha deve conter pelo menos um número'
+    )
+    .refine(
+      (val) => /[a-zA-Z]/.test(val),
+      'Senha deve conter pelo menos uma letra'
+    ),
 });
 
 // Schema para pedidos

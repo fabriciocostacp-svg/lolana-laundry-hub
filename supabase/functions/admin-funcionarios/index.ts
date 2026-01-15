@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import { hashPassword } from '../_shared/crypto.ts';
+import { hashPassword, validatePasswordStrength } from '../_shared/crypto.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -74,6 +74,15 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Validate password strength
+      const passwordValidation = validatePasswordStrength(body.senha);
+      if (!passwordValidation.valid) {
+        return new Response(
+          JSON.stringify({ error: passwordValidation.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Check if username already exists
       const { data: existing } = await supabase
         .from('funcionarios')
@@ -143,6 +152,14 @@ Deno.serve(async (req) => {
 
       // Only update password if provided
       if (senha) {
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(senha);
+        if (!passwordValidation.valid) {
+          return new Response(
+            JSON.stringify({ error: passwordValidation.message }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         sanitizedData.senha = await hashPassword(senha);
       }
 
