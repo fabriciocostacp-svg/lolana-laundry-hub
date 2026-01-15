@@ -1,1 +1,19 @@
 project_id = "ygbwblbjtewjqyoimvsk"
+
+[functions.auth-login]
+verify_jwt = false
+
+[functions.auth-validate]
+verify_jwt = false
+
+[functions.auth-logout]
+verify_jwt = false
+
+[functions.auth-reset-password]
+verify_jwt = false
+
+[functions.secure-api]
+verify_jwt = false
+
+[functions.admin-funcionarios]
+verify_jwt = false
