@@ -1,12 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  apiGetFuncionarios, 
+  apiCreateFuncionario, 
+  apiUpdateFuncionario, 
+  apiDeleteFuncionario,
+  ApiError 
+} from "@/lib/api";
+import { funcionarioSchema } from "@/lib/validation";
 import { toast } from "sonner";
 
 export interface FuncionarioDB {
   id: string;
   nome: string;
   usuario: string;
-  senha: string;
   telefone: string | null;
   pode_dar_desconto: boolean;
   pode_cobrar_taxa: boolean;
@@ -26,21 +33,19 @@ export interface FuncionarioPermissions {
 
 export const useFuncionarios = () => {
   const queryClient = useQueryClient();
+  const { sessionToken, currentUser } = useAuth();
 
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["funcionarios"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .select("*")
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        toast.error("Erro ao carregar funcionários");
-        throw error;
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
       }
-      return data as FuncionarioDB[];
+
+      const response = await apiGetFuncionarios<FuncionarioDB[]>(sessionToken);
+      return response.data;
     },
+    enabled: !!sessionToken && !!currentUser?.permissions.is_admin,
   });
 
   const addFuncionario = useMutation({
@@ -54,124 +59,117 @@ export const useFuncionarios = () => {
       pode_pagar_depois: boolean;
       is_admin: boolean;
     }) => {
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .insert([funcionario])
-        .select()
-        .single();
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
-      return data;
+      // Validate input
+      const result = funcionarioSchema.safeParse(funcionario);
+      if (!result.success) {
+        throw new Error(result.error.errors[0].message);
+      }
+
+      const response = await apiCreateFuncionario<FuncionarioDB>(sessionToken, funcionario);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["funcionarios"] });
       toast.success("Funcionário cadastrado com sucesso!");
     },
-    onError: (error: any) => {
-      if (error.code === "23505") {
+    onError: (error: Error | ApiError) => {
+      if (error.message.includes("já existe")) {
         toast.error("Já existe um funcionário com este usuário!");
       } else {
-        toast.error("Erro ao cadastrar funcionário");
+        toast.error(error.message || "Erro ao cadastrar funcionário");
       }
     },
   });
 
   const updateFuncionario = useMutation({
-    mutationFn: async ({ id, ...funcionario }: { 
+    mutationFn: async ({ id, senha, ...funcionario }: { 
       id: string; 
-      nome?: string;
-      usuario?: string;
+      nome: string;
+      usuario: string;
+      senha?: string;
       telefone?: string;
-      pode_dar_desconto?: boolean;
-      pode_cobrar_taxa?: boolean;
-      pode_pagar_depois?: boolean;
-      is_admin?: boolean;
-      ativo?: boolean;
+      pode_dar_desconto: boolean;
+      pode_cobrar_taxa: boolean;
+      pode_pagar_depois: boolean;
+      is_admin: boolean;
     }) => {
-      const { error } = await supabase
-        .from("funcionarios")
-        .update(funcionario)
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      const dataToUpdate = senha ? { ...funcionario, senha } : funcionario;
+      const response = await apiUpdateFuncionario<FuncionarioDB>(sessionToken, id, dataToUpdate);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["funcionarios"] });
       toast.success("Funcionário atualizado com sucesso!");
     },
-    onError: (error: any) => {
-      if (error.code === "23505") {
+    onError: (error: Error | ApiError) => {
+      if (error.message.includes("já existe")) {
         toast.error("Já existe um funcionário com este usuário!");
       } else {
-        toast.error("Erro ao atualizar funcionário");
+        toast.error(error.message || "Erro ao atualizar funcionário");
       }
     },
   });
 
   const updateSenha = useMutation({
     mutationFn: async ({ id, senha }: { id: string; senha: string }) => {
-      const { error } = await supabase
-        .from("funcionarios")
-        .update({ senha })
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      if (senha.length < 4) {
+        throw new Error("Senha deve ter pelo menos 4 caracteres");
+      }
+
+      // For password update, we need to get the current funcionario data
+      const func = funcionarios.find(f => f.id === id);
+      if (!func) {
+        throw new Error("Funcionário não encontrado");
+      }
+
+      await apiUpdateFuncionario(sessionToken, id, {
+        nome: func.nome,
+        usuario: func.usuario,
+        telefone: func.telefone,
+        pode_dar_desconto: func.pode_dar_desconto,
+        pode_cobrar_taxa: func.pode_cobrar_taxa,
+        pode_pagar_depois: func.pode_pagar_depois,
+        is_admin: func.is_admin,
+        senha,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["funcionarios"] });
       toast.success("Senha atualizada com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao atualizar senha");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao atualizar senha");
     },
   });
 
   const deleteFuncionario = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("funcionarios")
-        .delete()
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      await apiDeleteFuncionario(sessionToken, id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["funcionarios"] });
       toast.success("Funcionário excluído com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao excluir funcionário");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao excluir funcionário");
     },
   });
-
-  const loginFuncionario = async (usuario: string, senha: string): Promise<FuncionarioDB | null> => {
-    const { data, error } = await supabase
-      .from("funcionarios")
-      .select("*")
-      .eq("usuario", usuario)
-      .eq("senha", senha)
-      .eq("ativo", true)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-    return data as FuncionarioDB;
-  };
-
-  const findByTelefone = async (telefone: string): Promise<FuncionarioDB | null> => {
-    const { data, error } = await supabase
-      .from("funcionarios")
-      .select("*")
-      .eq("telefone", telefone)
-      .eq("ativo", true)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-    return data as FuncionarioDB;
-  };
 
   return {
     funcionarios,
@@ -180,7 +178,5 @@ export const useFuncionarios = () => {
     updateFuncionario,
     updateSenha,
     deleteFuncionario,
-    loginFuncionario,
-    findByTelefone,
   };
 };

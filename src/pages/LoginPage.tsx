@@ -13,9 +13,10 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Lock, User, HelpCircle, Phone } from "lucide-react";
+import { Lock, User, HelpCircle, Phone, Key } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiRequestPasswordReset, apiResetPassword } from "@/lib/api";
+import { loginSchema, resetPasswordRequestSchema } from "@/lib/validation";
 import lolanaLogo from "@/assets/lolana.png";
 
 export const LoginPage = () => {
@@ -27,13 +28,24 @@ export const LoginPage = () => {
 
   // Forgot password states
   const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotStep, setForgotStep] = useState<"phone" | "result">("phone");
+  const [forgotStep, setForgotStep] = useState<"phone" | "token" | "newPassword">("phone");
   const [forgotPhone, setForgotPhone] = useState("");
-  const [foundUser, setFoundUser] = useState<{ nome: string; usuario: string; senha: string } | null>(null);
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [foundUserName, setFoundUserName] = useState("");
+  const [foundUserUsuario, setFoundUserUsuario] = useState("");
   const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate input
+    const result = loginSchema.safeParse({ usuario: username, senha: password });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
+
     setIsLoading(true);
 
     const success = await login(username, password);
@@ -47,31 +59,52 @@ export const LoginPage = () => {
   };
 
   const handleForgotPassword = async () => {
-    if (!forgotPhone.trim()) {
-      toast.error("Digite o número de telefone!");
+    // Validate phone
+    const result = resetPasswordRequestSchema.safeParse({ telefone: forgotPhone });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
       return;
     }
 
     setIsForgotLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .select("nome, usuario, senha")
-        .eq("telefone", forgotPhone)
-        .eq("ativo", true)
-        .single();
-
-      if (error || !data) {
-        toast.error("Telefone não encontrado no sistema!");
-        setFoundUser(null);
-      } else {
-        setFoundUser(data);
-        setForgotStep("result");
-        toast.success("Usuário encontrado!");
+      const response = await apiRequestPasswordReset(forgotPhone);
+      
+      if (response.success) {
+        setResetToken(response.resetToken);
+        setFoundUserName(response.nome);
+        setFoundUserUsuario(response.usuario);
+        setForgotStep("token");
+        toast.success("Token de redefinição gerado!");
       }
-    } catch {
-      toast.error("Erro ao buscar usuário!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao buscar usuário!";
+      toast.error(message);
+    }
+
+    setIsForgotLoading(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (newPassword.length < 4) {
+      toast.error("Senha deve ter pelo menos 4 caracteres");
+      return;
+    }
+
+    setIsForgotLoading(true);
+
+    try {
+      const response = await apiResetPassword(resetToken, newPassword);
+      
+      if (response.success) {
+        toast.success("Senha alterada com sucesso! Faça login com a nova senha.");
+        setForgotOpen(false);
+        resetForgotDialog();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao alterar senha!";
+      toast.error(message);
     }
 
     setIsForgotLoading(false);
@@ -80,7 +113,10 @@ export const LoginPage = () => {
   const resetForgotDialog = () => {
     setForgotStep("phone");
     setForgotPhone("");
-    setFoundUser(null);
+    setResetToken("");
+    setNewPassword("");
+    setFoundUserName("");
+    setFoundUserUsuario("");
   };
 
   return (
@@ -125,6 +161,7 @@ export const LoginPage = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10 h-12 rounded-xl border-2 border-[hsl(210,100%,90%)] focus:border-[hsl(210,100%,50%)] transition-colors"
                   required
+                  maxLength={100}
                 />
               </div>
             </div>
@@ -142,6 +179,7 @@ export const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 h-12 rounded-xl border-2 border-[hsl(210,100%,90%)] focus:border-[hsl(210,100%,50%)] transition-colors"
                   required
+                  maxLength={100}
                 />
               </div>
             </div>
@@ -190,7 +228,7 @@ export const LoginPage = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {forgotStep === "phone" ? (
+          {forgotStep === "phone" && (
             <div className="space-y-4 py-4">
               <p className="text-sm text-muted-foreground">
                 Digite o número de telefone cadastrado para recuperar sua senha.
@@ -205,6 +243,7 @@ export const LoginPage = () => {
                     value={forgotPhone}
                     onChange={(e) => setForgotPhone(e.target.value)}
                     className="pl-10 rounded-xl"
+                    maxLength={20}
                   />
                 </div>
               </div>
@@ -221,33 +260,62 @@ export const LoginPage = () => {
                 </Button>
               </DialogFooter>
             </div>
-          ) : (
+          )}
+          
+          {forgotStep === "token" && (
             <div className="space-y-4 py-4">
-              {foundUser ? (
-                <div className="space-y-4">
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
-                    <p className="text-sm text-green-800 font-medium mb-2">Usuário encontrado!</p>
-                    <div className="space-y-1 text-sm">
-                      <p><strong>Nome:</strong> {foundUser.nome}</p>
-                      <p><strong>Usuário:</strong> {foundUser.usuario}</p>
-                      <p><strong>Senha:</strong> {foundUser.senha}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Por segurança, altere sua senha após fazer login.
-                  </p>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                <p className="text-sm text-green-800 font-medium mb-2">Usuário encontrado!</p>
+                <div className="space-y-1 text-sm">
+                  <p><strong>Nome:</strong> {foundUserName}</p>
+                  <p><strong>Usuário:</strong> {foundUserUsuario}</p>
                 </div>
-              ) : (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-sm text-red-800">Telefone não encontrado no sistema.</p>
+              </div>
+              
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="text-sm text-blue-800 font-medium mb-2 flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Token de Redefinição
+                </p>
+                <p className="text-xs text-blue-600 mb-2">
+                  Em um sistema real, este token seria enviado por SMS. Por agora, use-o diretamente:
+                </p>
+                <code className="block bg-white p-2 rounded text-sm font-mono break-all">
+                  {resetToken}
+                </code>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Digite a nova senha"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pl-10 rounded-xl"
+                    maxLength={100}
+                  />
                 </div>
-              )}
-              <DialogFooter>
+                <p className="text-xs text-muted-foreground">Mínimo 4 caracteres</p>
+              </div>
+
+              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
                 <Button
-                  onClick={() => setForgotOpen(false)}
-                  className="rounded-xl bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] w-full"
+                  variant="outline"
+                  onClick={() => setForgotStep("phone")}
+                  className="rounded-xl w-full sm:w-auto"
                 >
-                  Fechar
+                  Voltar
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  className="rounded-xl bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(142,76%,30%)] w-full sm:w-auto"
+                  disabled={isForgotLoading || newPassword.length < 4}
+                >
+                  {isForgotLoading ? "Alterando..." : "Alterar Senha"}
                 </Button>
               </DialogFooter>
             </div>

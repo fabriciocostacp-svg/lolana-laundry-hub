@@ -95,6 +95,41 @@ export type Database = {
         }
         Relationships: []
       }
+      password_resets: {
+        Row: {
+          created_at: string
+          expires_at: string
+          funcionario_id: string
+          id: string
+          token: string
+          used: boolean
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          funcionario_id: string
+          id?: string
+          token: string
+          used?: boolean
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          funcionario_id?: string
+          id?: string
+          token?: string
+          used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_resets_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           cliente_cnpj: string | null
@@ -163,12 +198,44 @@ export type Database = {
           },
         ]
       }
+      sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          funcionario_id: string
+          id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          funcionario_id: string
+          id?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          funcionario_id?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_sessions: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

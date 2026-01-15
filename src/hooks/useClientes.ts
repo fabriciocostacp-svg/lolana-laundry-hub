@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiGetData, apiCreateData, apiUpdateData, apiDeleteData, ApiError } from "@/lib/api";
+import { clienteSchema } from "@/lib/validation";
 import { toast } from "sonner";
 
 export interface ClienteDB {
@@ -16,76 +18,86 @@ export interface ClienteDB {
 
 export const useClientes = () => {
   const queryClient = useQueryClient();
+  const { sessionToken } = useAuth();
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("*")
-        .order("numero", { ascending: true });
-
-      if (error) {
-        toast.error("Erro ao carregar clientes");
-        throw error;
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
       }
-      return data as ClienteDB[];
+      
+      const response = await apiGetData<ClienteDB[]>('clientes', sessionToken);
+      return response.data;
     },
+    enabled: !!sessionToken,
   });
 
   const addCliente = useMutation({
     mutationFn: async (cliente: { nome: string; telefone: string; endereco: string; cpf?: string; cnpj?: string }) => {
-      const { data, error } = await supabase
-        .from("clientes")
-        .insert([{ ...cliente, numero: "" }])
-        .select()
-        .single();
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
-      return data;
+      // Validate input
+      const result = clienteSchema.safeParse(cliente);
+      if (!result.success) {
+        throw new Error(result.error.errors[0].message);
+      }
+
+      const response = await apiCreateData<ClienteDB>('clientes', sessionToken, {
+        ...result.data,
+        numero: "",
+      });
+      
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       toast.success("Cliente cadastrado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao cadastrar cliente");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao cadastrar cliente");
     },
   });
 
   const updateCliente = useMutation({
     mutationFn: async ({ id, ...cliente }: { id: string; nome: string; telefone: string; endereco: string; cpf?: string; cnpj?: string }) => {
-      const { error } = await supabase
-        .from("clientes")
-        .update(cliente)
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      // Validate input
+      const result = clienteSchema.safeParse(cliente);
+      if (!result.success) {
+        throw new Error(result.error.errors[0].message);
+      }
+
+      await apiUpdateData('clientes', sessionToken, id, result.data as Record<string, unknown>);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       toast.success("Cliente atualizado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao atualizar cliente");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao atualizar cliente");
     },
   });
 
   const deleteCliente = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("clientes")
-        .delete()
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      await apiDeleteData('clientes', sessionToken, id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       toast.success("Cliente excluído com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao excluir cliente");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao excluir cliente");
     },
   });
 

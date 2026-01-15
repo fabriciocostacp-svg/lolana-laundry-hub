@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiGetData, apiCreateData, apiUpdateData, apiDeleteData, ApiError } from "@/lib/api";
 import { toast } from "sonner";
 import { ItemPedido, StatusPedido } from "@/types";
 import { ClienteDB } from "./useClientes";
@@ -26,21 +27,18 @@ export interface PedidoDB {
 
 export const usePedidos = () => {
   const queryClient = useQueryClient();
+  const { sessionToken } = useAuth();
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["pedidos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast.error("Erro ao carregar pedidos");
-        throw error;
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
       }
+
+      const response = await apiGetData<PedidoDB[]>('pedidos', sessionToken);
       
-      return (data || []).map(p => ({
+      return (response.data || []).map(p => ({
         ...p,
         valor_total: Number(p.valor_total),
         itens: p.itens as unknown as ItemPedido[],
@@ -54,6 +52,7 @@ export const usePedidos = () => {
         cliente_cnpj: p.cliente_cnpj || undefined
       })) as PedidoDB[];
     },
+    enabled: !!sessionToken,
   });
 
   const addPedido = useMutation({
@@ -70,6 +69,10 @@ export const usePedidos = () => {
       descontoValor?: number;
       taxaEntrega?: number;
     }) => {
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
+
       const subtotal = itens.reduce(
         (acc, item) => acc + item.servico.preco * item.quantidade,
         0
@@ -79,88 +82,80 @@ export const usePedidos = () => {
       const descontoTotal = valorDescontoPercentual + descontoValor;
       const valorTotal = subtotal - descontoTotal + taxaEntrega;
 
-      const { data, error } = await supabase
-        .from("pedidos")
-        .insert([{
-          numero: "",
-          cliente_id: cliente.id,
-          cliente_nome: cliente.nome,
-          cliente_telefone: cliente.telefone,
-          cliente_cpf: cliente.cpf || null,
-          cliente_cnpj: cliente.cnpj || null,
-          valor_total: Math.max(0, valorTotal),
-          status: "lavando",
-          itens: JSON.parse(JSON.stringify(itens)),
-          pago: false,
-          retirado: false,
-          desconto_percentual: descontoPercentual,
-          desconto_valor: descontoValor,
-          taxa_entrega: taxaEntrega
-        }])
-        .select()
-        .single();
+      const response = await apiCreateData<PedidoDB>('pedidos', sessionToken, {
+        numero: "",
+        cliente_id: cliente.id,
+        cliente_nome: cliente.nome,
+        cliente_telefone: cliente.telefone,
+        cliente_cpf: cliente.cpf || null,
+        cliente_cnpj: cliente.cnpj || null,
+        valor_total: Math.max(0, valorTotal),
+        status: "lavando",
+        itens: JSON.parse(JSON.stringify(itens)),
+        pago: false,
+        retirado: false,
+        desconto_percentual: descontoPercentual,
+        desconto_valor: descontoValor,
+        taxa_entrega: taxaEntrega
+      });
 
-      if (error) throw error;
-      return data;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       toast.success("Pedido criado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao criar pedido");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao criar pedido");
     },
   });
 
   const updatePedidoStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: StatusPedido }) => {
-      const { error } = await supabase
-        .from("pedidos")
-        .update({ status })
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      await apiUpdateData('pedidos', sessionToken, id, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
     },
-    onError: () => {
-      toast.error("Erro ao atualizar status");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao atualizar status");
     },
   });
 
   const updatePedidoPagamento = useMutation({
     mutationFn: async ({ id, pago, retirado }: { id: string; pago: boolean; retirado: boolean }) => {
-      const { error } = await supabase
-        .from("pedidos")
-        .update({ pago, retirado })
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      await apiUpdateData('pedidos', sessionToken, id, { pago, retirado });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
     },
-    onError: () => {
-      toast.error("Erro ao atualizar pagamento");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao atualizar pagamento");
     },
   });
 
   const deletePedido = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("pedidos")
-        .delete()
-        .eq("id", id);
+      if (!sessionToken) {
+        throw new Error("Não autenticado");
+      }
 
-      if (error) throw error;
+      await apiDeleteData('pedidos', sessionToken, id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       toast.success("Pedido excluído com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao excluir pedido");
+    onError: (error: Error | ApiError) => {
+      toast.error(error.message || "Erro ao excluir pedido");
     },
   });
 
