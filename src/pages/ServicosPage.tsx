@@ -24,7 +24,7 @@ import { servicosFixos } from "@/data/servicos";
 import { useClientes } from "@/hooks/useClientes";
 import { usePedidos } from "@/hooks/usePedidos";
 import { ItemPedido } from "@/types";
-import { Package, ShoppingCart, UserCheck, Loader2 } from "lucide-react";
+import { Package, ShoppingCart, UserCheck, Loader2, Search, Percent, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 export const ServicosPage = () => {
@@ -34,6 +34,10 @@ export const ServicosPage = () => {
   const [quantidades, setQuantidades] = useState<Record<string, number>>(
     servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
   );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [descontoPercentual, setDescontoPercentual] = useState<string>("");
+  const [descontoValor, setDescontoValor] = useState<string>("");
+  const [taxaEntrega, setTaxaEntrega] = useState<string>("");
 
   const handleQuantidadeChange = (id: string, value: string) => {
     const num = parseInt(value) || 0;
@@ -50,15 +54,39 @@ export const ServicosPage = () => {
     });
   };
 
-  const total = useMemo(() => {
+  const subtotal = useMemo(() => {
     return servicosFixos.reduce((acc, servico) => {
       return acc + servico.preco * (quantidades[servico.id] || 0);
     }, 0);
   }, [quantidades]);
 
+  const descontoPercentualNum = parseFloat(descontoPercentual) || 0;
+  const descontoValorNum = parseFloat(descontoValor) || 0;
+  const taxaEntregaNum = parseInt(taxaEntrega) || 0;
+  
+  const valorDescontoPercentual = (subtotal * descontoPercentualNum) / 100;
+  const descontoTotal = valorDescontoPercentual + descontoValorNum;
+  const total = Math.max(0, subtotal - descontoTotal + taxaEntregaNum);
+
   const categorias = useMemo(() => {
     return [...new Set(servicosFixos.map((s) => s.categoria))];
   }, []);
+
+  // Filtrar serviços pela busca
+  const servicosFiltrados = useMemo(() => {
+    if (!searchTerm.trim()) return servicosFixos;
+    const term = searchTerm.toLowerCase();
+    return servicosFixos.filter(
+      (s) =>
+        s.nome.toLowerCase().includes(term) ||
+        s.categoria.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
+  // Agrupar serviços filtrados por categoria
+  const categoriasFiltradas = useMemo(() => {
+    return [...new Set(servicosFiltrados.map((s) => s.categoria))];
+  }, [servicosFiltrados]);
 
   const getCategoryColor = (categoria: string) => {
     const colors: Record<string, string> = {
@@ -70,6 +98,15 @@ export const ServicosPage = () => {
     };
     return colors[categoria] || "bg-muted text-muted-foreground";
   };
+
+  // Criar índice numérico para os serviços
+  const servicoIndex = useMemo(() => {
+    const index: Record<string, number> = {};
+    servicosFixos.forEach((s, i) => {
+      index[s.id] = i + 1;
+    });
+    return index;
+  }, []);
 
   const handleCriarPedido = () => {
     const cliente = clientes.find((c) => c.id === selectedClienteId);
@@ -90,14 +127,33 @@ export const ServicosPage = () => {
       return;
     }
 
-    addPedido.mutate({ cliente, itens });
+    addPedido.mutate({ 
+      cliente, 
+      itens,
+      descontoPercentual: descontoPercentualNum,
+      descontoValor: descontoValorNum,
+      taxaEntrega: taxaEntregaNum
+    });
     
     // Reset form
     setSelectedClienteId("");
     setQuantidades(servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {}));
+    setDescontoPercentual("");
+    setDescontoValor("");
+    setTaxaEntrega("");
+    setSearchTerm("");
   };
 
   const hasServicosSelected = Object.values(quantidades).some((q) => q > 0);
+
+  // Adicionar serviço pela busca rápida
+  const handleAddFromSearch = (servicoId: string) => {
+    setQuantidades((prev) => ({
+      ...prev,
+      [servicoId]: (prev[servicoId] || 0) + 1,
+    }));
+    toast.success("Serviço adicionado!");
+  };
 
   if (loadingClientes) {
     return (
@@ -152,6 +208,87 @@ export const ServicosPage = () => {
           </CardContent>
         </Card>
 
+        {/* Card de Busca de Serviços */}
+        <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar serviço por nome ou categoria..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 rounded-xl"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card de Desconto e Taxa */}
+        <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-[hsl(210,100%,97%)] py-3">
+            <CardTitle className="text-[hsl(215,70%,25%)] text-base md:text-lg flex items-center gap-2">
+              <Percent className="h-5 w-5" />
+              Descontos e Taxas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Desconto (%)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  placeholder="0"
+                  value={descontoPercentual}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, "");
+                    setDescontoPercentual(value);
+                  }}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Desconto (R$)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={descontoValor}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, "");
+                    setDescontoValor(value);
+                  }}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Taxa de Entrega (R$)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  value={taxaEntrega}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    setTaxaEntrega(value);
+                  }}
+                  className="rounded-xl"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tabela de Serviços */}
         <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
           <CardHeader className="bg-[hsl(210,100%,97%)] rounded-t-2xl">
@@ -161,10 +298,20 @@ export const ServicosPage = () => {
                 <CardTitle className="text-[hsl(215,70%,25%)] text-lg md:text-xl">Tabela de Serviços</CardTitle>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                <div className="text-left sm:text-right">
-                  <p className="text-sm text-muted-foreground">Total Selecionado</p>
+                <div className="text-left sm:text-right space-y-1">
+                  <p className="text-sm text-muted-foreground">Subtotal: {formatCurrency(subtotal)}</p>
+                  {descontoTotal > 0 && (
+                    <p className="text-sm text-red-500">
+                      Desconto: -{formatCurrency(descontoTotal)}
+                    </p>
+                  )}
+                  {taxaEntregaNum > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Taxa: +{formatCurrency(taxaEntregaNum)}
+                    </p>
+                  )}
                   <p className="text-xl md:text-2xl font-bold text-[hsl(210,100%,50%)]">
-                    {formatCurrency(total)}
+                    Total: {formatCurrency(total)}
                   </p>
                 </div>
                 <Button 
@@ -182,8 +329,8 @@ export const ServicosPage = () => {
           <CardContent className="p-0">
             {/* Mobile Cards View */}
             <div className="block md:hidden divide-y">
-              {categorias.map((categoria) => (
-                servicosFixos
+              {categoriasFiltradas.map((categoria) => (
+                servicosFiltrados
                   .filter((s) => s.categoria === categoria)
                   .map((servico) => (
                     <div 
@@ -192,7 +339,12 @@ export const ServicosPage = () => {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-1">
-                          <p className="font-medium">{servico.nome}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-muted-foreground">
+                              #{servicoIndex[servico.id]}
+                            </span>
+                            <p className="font-medium">{servico.nome}</p>
+                          </div>
                           <Badge
                             variant="outline"
                             className={`${getCategoryColor(servico.categoria)} rounded-lg text-xs`}
@@ -217,6 +369,14 @@ export const ServicosPage = () => {
                             }
                             className="w-20 text-center rounded-xl"
                           />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAddFromSearch(servico.id)}
+                            className="rounded-xl"
+                          >
+                            +1
+                          </Button>
                         </div>
                         {quantidades[servico.id] > 0 && (
                           <p className="font-mono font-bold text-[hsl(210,100%,50%)]">
@@ -234,17 +394,18 @@ export const ServicosPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-[hsl(215,70%,25%)]">
+                    <TableHead className="w-16 text-white font-bold">#</TableHead>
                     <TableHead className="text-white font-bold">Serviço</TableHead>
                     <TableHead className="w-40 text-white font-bold">Categoria</TableHead>
                     <TableHead className="w-32 text-right text-white font-bold">Preço Unit.</TableHead>
-                    <TableHead className="w-32 text-center text-white font-bold">Quantidade</TableHead>
+                    <TableHead className="w-40 text-center text-white font-bold">Quantidade</TableHead>
                     <TableHead className="w-32 text-right text-white font-bold">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {categorias.map((categoria) => (
+                  {categoriasFiltradas.map((categoria) => (
                     <>
-                      {servicosFixos
+                      {servicosFiltrados
                         .filter((s) => s.categoria === categoria)
                         .map((servico) => (
                           <TableRow
@@ -253,6 +414,9 @@ export const ServicosPage = () => {
                               quantidades[servico.id] > 0 ? "bg-[hsl(210,100%,95%)]" : ""
                             }`}
                           >
+                            <TableCell className="font-mono text-muted-foreground">
+                              #{servicoIndex[servico.id]}
+                            </TableCell>
                             <TableCell className="font-medium">
                               {servico.nome}
                             </TableCell>
@@ -268,16 +432,26 @@ export const ServicosPage = () => {
                               {formatCurrency(servico.preco)}
                             </TableCell>
                             <TableCell className="text-center">
-                              <Input
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={quantidades[servico.id]}
-                                onChange={(e) =>
-                                  handleQuantidadeChange(servico.id, e.target.value)
-                                }
-                                className="w-20 mx-auto text-center rounded-xl"
-                              />
+                              <div className="flex items-center justify-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={quantidades[servico.id]}
+                                  onChange={(e) =>
+                                    handleQuantidadeChange(servico.id, e.target.value)
+                                  }
+                                  className="w-20 text-center rounded-xl"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAddFromSearch(servico.id)}
+                                  className="rounded-xl"
+                                >
+                                  +1
+                                </Button>
+                              </div>
                             </TableCell>
                             <TableCell className="text-right font-mono font-bold">
                               {quantidades[servico.id] > 0 ? (

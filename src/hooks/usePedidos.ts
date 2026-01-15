@@ -10,11 +10,16 @@ export interface PedidoDB {
   cliente_id: string;
   cliente_nome: string;
   cliente_telefone: string;
+  cliente_cpf?: string;
+  cliente_cnpj?: string;
   valor_total: number;
   status: StatusPedido;
   itens: ItemPedido[];
   pago: boolean;
   retirado: boolean;
+  desconto_percentual: number;
+  desconto_valor: number;
+  taxa_entrega: number;
   created_at: string;
   updated_at: string;
 }
@@ -41,17 +46,38 @@ export const usePedidos = () => {
         itens: p.itens as unknown as ItemPedido[],
         status: p.status as StatusPedido,
         pago: p.pago ?? false,
-        retirado: p.retirado ?? false
+        retirado: p.retirado ?? false,
+        desconto_percentual: Number(p.desconto_percentual) || 0,
+        desconto_valor: Number(p.desconto_valor) || 0,
+        taxa_entrega: Number(p.taxa_entrega) || 0,
+        cliente_cpf: p.cliente_cpf || undefined,
+        cliente_cnpj: p.cliente_cnpj || undefined
       })) as PedidoDB[];
     },
   });
 
   const addPedido = useMutation({
-    mutationFn: async ({ cliente, itens }: { cliente: ClienteDB; itens: ItemPedido[] }) => {
-      const valorTotal = itens.reduce(
+    mutationFn: async ({ 
+      cliente, 
+      itens, 
+      descontoPercentual = 0, 
+      descontoValor = 0, 
+      taxaEntrega = 0 
+    }: { 
+      cliente: ClienteDB; 
+      itens: ItemPedido[]; 
+      descontoPercentual?: number;
+      descontoValor?: number;
+      taxaEntrega?: number;
+    }) => {
+      const subtotal = itens.reduce(
         (acc, item) => acc + item.servico.preco * item.quantidade,
         0
       );
+      
+      const valorDescontoPercentual = (subtotal * descontoPercentual) / 100;
+      const descontoTotal = valorDescontoPercentual + descontoValor;
+      const valorTotal = subtotal - descontoTotal + taxaEntrega;
 
       const { data, error } = await supabase
         .from("pedidos")
@@ -60,11 +86,16 @@ export const usePedidos = () => {
           cliente_id: cliente.id,
           cliente_nome: cliente.nome,
           cliente_telefone: cliente.telefone,
-          valor_total: valorTotal,
+          cliente_cpf: cliente.cpf || null,
+          cliente_cnpj: cliente.cnpj || null,
+          valor_total: Math.max(0, valorTotal),
           status: "lavando",
           itens: JSON.parse(JSON.stringify(itens)),
           pago: false,
-          retirado: false
+          retirado: false,
+          desconto_percentual: descontoPercentual,
+          desconto_valor: descontoValor,
+          taxa_entrega: taxaEntrega
         }])
         .select()
         .single();

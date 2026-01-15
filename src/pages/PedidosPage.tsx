@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -29,11 +31,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { usePedidos, PedidoDB } from "@/hooks/usePedidos";
 import { StatusPedido } from "@/types";
-import { ClipboardList, MessageCircle, WashingMachine, Wind, Shirt, Check, X, Loader2, Trash2 } from "lucide-react";
+import { ClipboardList, MessageCircle, WashingMachine, Wind, Shirt, Check, X, Loader2, Trash2, Printer, DollarSign } from "lucide-react";
 import { toast } from "sonner";
-import lolanaLogo from "@/assets/lolana.png";
+import { CupomImpressao } from "@/components/CupomImpressao";
 
 const statusConfig: Record<StatusPedido, { label: string; icon: React.ElementType; bgClass: string; textClass: string }> = {
   lavando: { label: "Lavando", icon: WashingMachine, bgClass: "bg-[hsl(210,100%,50%)]", textClass: "text-white" },
@@ -44,6 +53,9 @@ const statusConfig: Record<StatusPedido, { label: string; icon: React.ElementTyp
 
 export const PedidosPage = () => {
   const { pedidos, isLoading, updatePedidoStatus, updatePedidoPagamento, deletePedido } = usePedidos();
+  const [printDialog, setPrintDialog] = useState<{ open: boolean; pedido: PedidoDB | null }>({ open: false, pedido: null });
+  const [printCpfCnpj, setPrintCpfCnpj] = useState("");
+  const cupomRef = useRef<HTMLDivElement>(null);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -74,6 +86,40 @@ export const PedidosPage = () => {
     toast.warning("Pedido marcado como retirado SEM pagamento!");
   };
 
+  const handleMarcarComoPago = (pedido: PedidoDB) => {
+    updatePedidoPagamento.mutate({ id: pedido.id, pago: true, retirado: pedido.retirado });
+    toast.success("Pedido marcado como PAGO!");
+  };
+
+  const handleOpenPrint = (pedido: PedidoDB) => {
+    setPrintCpfCnpj(pedido.cliente_cpf || pedido.cliente_cnpj || "");
+    setPrintDialog({ open: true, pedido });
+  };
+
+  const handlePrint = () => {
+    if (cupomRef.current) {
+      const printContent = cupomRef.current.innerHTML;
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Cupom - Lolana Lavanderia</title>
+              <style>
+                body { font-family: monospace; font-size: 12px; margin: 0; padding: 20px; }
+                * { box-sizing: border-box; }
+              </style>
+            </head>
+            <body>${printContent}</body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    }
+    setPrintDialog({ open: false, pedido: null });
+  };
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("pt-BR", {
       day: "2-digit",
@@ -102,11 +148,7 @@ export const PedidosPage = () => {
             <ClipboardList className="h-5 w-5 md:h-6 md:w-6" />
             <CardTitle className="text-white text-lg md:text-xl">Gerenciamento de Pedidos</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge className="bg-white/20 text-white border-0">
-              {pedidos.length} pedido(s)
-            </Badge>
-          </div>
+          <Badge className="bg-white/20 text-white border-0">{pedidos.length} pedido(s)</Badge>
         </CardHeader>
         <CardContent className="p-0">
           {pedidos.length === 0 ? (
@@ -125,7 +167,6 @@ export const PedidosPage = () => {
                   
                   return (
                     <div key={pedido.id} className="p-4 space-y-3">
-                      {/* Header: ID, Cliente, Data */}
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <span className="font-mono font-bold text-[hsl(210,100%,50%)]">#{pedido.numero}</span>
@@ -133,31 +174,19 @@ export const PedidosPage = () => {
                           <p className="text-sm text-muted-foreground">{pedido.cliente_telefone}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-mono font-bold text-lg text-[hsl(215,70%,25%)]">
-                            {formatCurrency(pedido.valor_total)}
-                          </p>
+                          <p className="font-mono font-bold text-lg text-[hsl(215,70%,25%)]">{formatCurrency(pedido.valor_total)}</p>
                           <p className="text-xs text-muted-foreground">{formatDate(pedido.created_at)}</p>
                         </div>
                       </div>
 
-                      {/* Itens */}
                       <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-2">
                         {pedido.itens.map((item, i) => (
-                          <span key={i}>
-                            {item.quantidade}x {item.servico.nome}
-                            {i < pedido.itens.length - 1 ? ", " : ""}
-                          </span>
+                          <span key={i}>{item.quantidade}x {item.servico.nome}{i < pedido.itens.length - 1 ? ", " : ""}</span>
                         ))}
                       </div>
 
-                      {/* Status e Pagamento */}
                       <div className="flex flex-wrap items-center gap-2">
-                        <Select
-                          value={pedido.status}
-                          onValueChange={(value: StatusPedido) =>
-                            handleStatusChange(pedido, value)
-                          }
-                        >
+                        <Select value={pedido.status} onValueChange={(value: StatusPedido) => handleStatusChange(pedido, value)}>
                           <SelectTrigger className={`${statusConfig[pedido.status].bgClass} ${statusConfig[pedido.status].textClass} border-0 rounded-xl w-auto min-w-[130px]`}>
                             <div className="flex items-center gap-2">
                               <StatusIcon className="h-4 w-4" />
@@ -169,10 +198,7 @@ export const PedidosPage = () => {
                               const Icon = config.icon;
                               return (
                                 <SelectItem key={key} value={key}>
-                                  <div className="flex items-center gap-2">
-                                    <Icon className="h-4 w-4" />
-                                    <span>{config.label}</span>
-                                  </div>
+                                  <div className="flex items-center gap-2"><Icon className="h-4 w-4" /><span>{config.label}</span></div>
                                 </SelectItem>
                               );
                             })}
@@ -181,78 +207,46 @@ export const PedidosPage = () => {
 
                         {pedido.retirado ? (
                           pedido.pago ? (
-                            <Badge className="bg-[hsl(142,76%,36%)]/10 text-[hsl(142,76%,36%)] border-0">
-                              <Check className="h-3 w-3 mr-1" />
-                              Pago
-                            </Badge>
+                            <Badge className="bg-[hsl(142,76%,36%)]/10 text-[hsl(142,76%,36%)] border-0"><Check className="h-3 w-3 mr-1" />Pago</Badge>
                           ) : (
-                            <Badge className="bg-destructive/10 text-destructive border-0">
-                              <X className="h-3 w-3 mr-1" />
-                              Não Pago
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <Badge className="bg-destructive/10 text-destructive border-0"><X className="h-3 w-3 mr-1" />Não Pago</Badge>
+                              <Button size="sm" onClick={() => handleMarcarComoPago(pedido)} className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-7 px-2 text-xs">
+                                <DollarSign className="h-3 w-3 mr-1" />Pagar
+                              </Button>
+                            </div>
                           )
                         ) : isPronto ? (
                           <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              onClick={() => handleMarcarRetiradoPago(pedido)}
-                              className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-8 px-2"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleMarcarRetiradoNaoPago(pedido)}
-                              className="rounded-lg h-8 px-2"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            <Button size="sm" onClick={() => handleMarcarRetiradoPago(pedido)} className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-8 px-2"><Check className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleMarcarRetiradoNaoPago(pedido)} className="rounded-lg h-8 px-2"><X className="h-4 w-4" /></Button>
                           </div>
                         ) : null}
                       </div>
 
-                      {/* Ações */}
                       <div className="flex items-center gap-2 pt-2 border-t">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 gap-2 rounded-xl"
-                          onClick={() => {
-                            const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\n📞 Contato: (19) 99757-9086`;
-                            const telefone = pedido.cliente_telefone.replace(/\D/g, "");
-                            window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, "_blank");
-                          }}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          WhatsApp
+                        <Button variant="outline" size="sm" className="flex-1 gap-2 rounded-xl" onClick={() => {
+                          const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\n📞 Contato: (19) 99757-9086`;
+                          const telefone = pedido.cliente_telefone.replace(/\D/g, "");
+                          window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, "_blank");
+                        }}>
+                          <MessageCircle className="h-4 w-4" />WhatsApp
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-2 rounded-xl" onClick={() => handleOpenPrint(pedido)}>
+                          <Printer className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-2 rounded-xl text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Button variant="outline" size="sm" className="gap-2 rounded-xl text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="rounded-2xl mx-4 max-w-[calc(100vw-2rem)]">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Excluir Pedido</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir o pedido #{pedido.numero}?
-                                Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
+                              <AlertDialogDescription>Tem certeza que deseja excluir o pedido #{pedido.numero}? Esta ação não pode ser desfeita.</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                               <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deletePedido.mutate(pedido.id)}
-                                className="bg-destructive hover:bg-destructive/90 rounded-xl"
-                              >
-                                Excluir
-                              </AlertDialogAction>
+                              <AlertDialogAction onClick={() => deletePedido.mutate(pedido.id)} className="bg-destructive hover:bg-destructive/90 rounded-xl">Excluir</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -272,9 +266,9 @@ export const PedidosPage = () => {
                       <TableHead className="font-bold text-[hsl(215,70%,25%)]">Itens</TableHead>
                       <TableHead className="w-32 text-right font-bold text-[hsl(215,70%,25%)]">Valor</TableHead>
                       <TableHead className="w-40 text-center font-bold text-[hsl(215,70%,25%)]">Status</TableHead>
-                      <TableHead className="w-32 text-center font-bold text-[hsl(215,70%,25%)]">Pagamento</TableHead>
+                      <TableHead className="w-40 text-center font-bold text-[hsl(215,70%,25%)]">Pagamento</TableHead>
                       <TableHead className="w-48 font-bold text-[hsl(215,70%,25%)]">Data</TableHead>
-                      <TableHead className="w-32 text-center font-bold text-[hsl(215,70%,25%)]">Ações</TableHead>
+                      <TableHead className="w-40 text-center font-bold text-[hsl(215,70%,25%)]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -284,37 +278,23 @@ export const PedidosPage = () => {
                       
                       return (
                         <TableRow key={pedido.id} className="hover:bg-[hsl(210,100%,98%)]">
-                          <TableCell className="font-mono font-bold text-[hsl(210,100%,50%)]">
-                            #{pedido.numero}
-                          </TableCell>
+                          <TableCell className="font-mono font-bold text-[hsl(210,100%,50%)]">#{pedido.numero}</TableCell>
                           <TableCell>
                             <div>
                               <p className="font-medium">{pedido.cliente_nome}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {pedido.cliente_telefone}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{pedido.cliente_telefone}</p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm max-w-xs">
                               {pedido.itens.map((item, i) => (
-                                <span key={i}>
-                                  {item.quantidade}x {item.servico.nome}
-                                  {i < pedido.itens.length - 1 ? ", " : ""}
-                                </span>
+                                <span key={i}>{item.quantidade}x {item.servico.nome}{i < pedido.itens.length - 1 ? ", " : ""}</span>
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-lg text-[hsl(215,70%,25%)]">
-                            {formatCurrency(pedido.valor_total)}
-                          </TableCell>
+                          <TableCell className="text-right font-mono font-bold text-lg text-[hsl(215,70%,25%)]">{formatCurrency(pedido.valor_total)}</TableCell>
                           <TableCell>
-                            <Select
-                              value={pedido.status}
-                              onValueChange={(value: StatusPedido) =>
-                                handleStatusChange(pedido, value)
-                              }
-                            >
+                            <Select value={pedido.status} onValueChange={(value: StatusPedido) => handleStatusChange(pedido, value)}>
                               <SelectTrigger className={`${statusConfig[pedido.status].bgClass} ${statusConfig[pedido.status].textClass} border-0 rounded-xl`}>
                                 <div className="flex items-center gap-2">
                                   <StatusIcon className="h-4 w-4" />
@@ -326,10 +306,7 @@ export const PedidosPage = () => {
                                   const Icon = config.icon;
                                   return (
                                     <SelectItem key={key} value={key}>
-                                      <div className="flex items-center gap-2">
-                                        <Icon className="h-4 w-4" />
-                                        <span>{config.label}</span>
-                                      </div>
+                                      <div className="flex items-center gap-2"><Icon className="h-4 w-4" /><span>{config.label}</span></div>
                                     </SelectItem>
                                   );
                                 })}
@@ -338,86 +315,58 @@ export const PedidosPage = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             {pedido.retirado ? (
-                              <div className="flex justify-center">
+                              <div className="flex justify-center items-center gap-2">
                                 {pedido.pago ? (
                                   <div className="flex items-center gap-1 text-[hsl(142,76%,36%)]">
                                     <Check className="h-6 w-6" />
                                     <span className="text-xs font-medium">Pago</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1 text-destructive">
-                                    <X className="h-6 w-6" />
-                                    <span className="text-xs font-medium">Não Pago</span>
-                                  </div>
+                                  <>
+                                    <div className="flex items-center gap-1 text-destructive">
+                                      <X className="h-5 w-5" />
+                                      <span className="text-xs font-medium">Não Pago</span>
+                                    </div>
+                                    <Button size="sm" onClick={() => handleMarcarComoPago(pedido)} className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-7 px-2 text-xs">
+                                      <DollarSign className="h-3 w-3" />
+                                    </Button>
+                                  </>
                                 )}
                               </div>
                             ) : isPronto ? (
                               <div className="flex justify-center gap-1">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleMarcarRetiradoPago(pedido)}
-                                  className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-8 px-2"
-                                  title="Retirado e Pago"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleMarcarRetiradoNaoPago(pedido)}
-                                  className="rounded-lg h-8 px-2"
-                                  title="Retirado Sem Pagar"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
+                                <Button size="sm" onClick={() => handleMarcarRetiradoPago(pedido)} className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] rounded-lg h-8 px-2" title="Retirado e Pago"><Check className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="destructive" onClick={() => handleMarcarRetiradoNaoPago(pedido)} className="rounded-lg h-8 px-2" title="Retirado Sem Pagar"><X className="h-4 w-4" /></Button>
                               </div>
                             ) : (
                               <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(pedido.created_at)}
-                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{formatDate(pedido.created_at)}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="hover:bg-[hsl(142,76%,36%)]/20 hover:text-[hsl(142,76%,36%)] rounded-xl"
-                                onClick={() => {
-                                  const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\n📞 Contato: (19) 99757-9086`;
-                                  const telefone = pedido.cliente_telefone.replace(/\D/g, "");
-                                  window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, "_blank");
-                                }}
-                              >
+                              <Button variant="ghost" size="icon" className="hover:bg-[hsl(142,76%,36%)]/20 hover:text-[hsl(142,76%,36%)] rounded-xl" onClick={() => {
+                                const mensagem = `Olá, ${pedido.cliente_nome}! 😊\n\nSeu pedido #${pedido.numero} da Lolana Lavanderia.\nValor total: ${formatCurrency(pedido.valor_total)}.\n\n📞 Contato: (19) 99757-9086`;
+                                const telefone = pedido.cliente_telefone.replace(/\D/g, "");
+                                window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, "_blank");
+                              }}>
                                 <MessageCircle className="h-5 w-5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="hover:bg-[hsl(210,100%,50%)]/20 hover:text-[hsl(210,100%,50%)] rounded-xl" onClick={() => handleOpenPrint(pedido)}>
+                                <Printer className="h-5 w-5" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="hover:bg-destructive/20 hover:text-destructive rounded-xl"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  <Button variant="ghost" size="icon" className="hover:bg-destructive/20 hover:text-destructive rounded-xl"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="rounded-2xl">
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Excluir Pedido</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Tem certeza que deseja excluir o pedido #{pedido.numero}?
-                                      Esta ação não pode ser desfeita.
-                                    </AlertDialogDescription>
+                                    <AlertDialogDescription>Tem certeza que deseja excluir o pedido #{pedido.numero}? Esta ação não pode ser desfeita.</AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deletePedido.mutate(pedido.id)}
-                                      className="bg-destructive hover:bg-destructive/90 rounded-xl"
-                                    >
-                                      Excluir
-                                    </AlertDialogAction>
+                                    <AlertDialogAction onClick={() => deletePedido.mutate(pedido.id)} className="bg-destructive hover:bg-destructive/90 rounded-xl">Excluir</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
@@ -433,6 +382,38 @@ export const PedidosPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de Impressão */}
+      <Dialog open={printDialog.open} onOpenChange={(open) => setPrintDialog({ open, pedido: open ? printDialog.pedido : null })}>
+        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Imprimir Cupom</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>CPF/CNPJ (opcional)</Label>
+              <Input
+                placeholder="Digite CPF ou CNPJ para o cupom"
+                value={printCpfCnpj}
+                onChange={(e) => setPrintCpfCnpj(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            {printDialog.pedido && (
+              <div className="border rounded-xl p-2 bg-gray-50 max-h-[400px] overflow-y-auto">
+                <CupomImpressao ref={cupomRef} pedido={printDialog.pedido} cpfCnpj={printCpfCnpj} />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPrintDialog({ open: false, pedido: null })} className="rounded-xl">Cancelar</Button>
+            <Button onClick={handlePrint} className="rounded-xl bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] gap-2">
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 };

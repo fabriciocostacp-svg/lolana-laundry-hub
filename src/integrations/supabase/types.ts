@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       clientes: {
         Row: {
+          cnpj: string | null
+          cpf: string | null
           created_at: string
           endereco: string
           id: string
@@ -25,6 +27,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cnpj?: string | null
+          cpf?: string | null
           created_at?: string
           endereco: string
           id?: string
@@ -34,6 +38,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cnpj?: string | null
+          cpf?: string | null
           created_at?: string
           endereco?: string
           id?: string
@@ -46,44 +52,59 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          cliente_cnpj: string | null
+          cliente_cpf: string | null
           cliente_id: string
           cliente_nome: string
           cliente_telefone: string
           created_at: string
+          desconto_percentual: number | null
+          desconto_valor: number | null
           id: string
           itens: Json
           numero: string
           pago: boolean | null
           retirado: boolean | null
           status: string
+          taxa_entrega: number | null
           updated_at: string
           valor_total: number
         }
         Insert: {
+          cliente_cnpj?: string | null
+          cliente_cpf?: string | null
           cliente_id: string
           cliente_nome: string
           cliente_telefone: string
           created_at?: string
+          desconto_percentual?: number | null
+          desconto_valor?: number | null
           id?: string
           itens?: Json
           numero: string
           pago?: boolean | null
           retirado?: boolean | null
           status?: string
+          taxa_entrega?: number | null
           updated_at?: string
           valor_total?: number
         }
         Update: {
+          cliente_cnpj?: string | null
+          cliente_cpf?: string | null
           cliente_id?: string
           cliente_nome?: string
           cliente_telefone?: string
           created_at?: string
+          desconto_percentual?: number | null
+          desconto_valor?: number | null
           id?: string
           itens?: Json
           numero?: string
           pago?: boolean | null
           retirado?: boolean | null
           status?: string
+          taxa_entrega?: number | null
           updated_at?: string
           valor_total?: number
         }

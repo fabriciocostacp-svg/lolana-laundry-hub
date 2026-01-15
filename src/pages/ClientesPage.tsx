@@ -32,35 +32,54 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useClientes, ClienteDB } from "@/hooks/useClientes";
-import { Plus, Pencil, Trash2, Users, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Loader2, Building2, User } from "lucide-react";
 import { toast } from "sonner";
 
 export const ClientesPage = () => {
   const { clientes, isLoading, addCliente, updateCliente, deleteCliente } = useClientes();
   const [isOpen, setIsOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<ClienteDB | null>(null);
+  const [tipoCliente, setTipoCliente] = useState<"pessoa" | "empresa">("pessoa");
   const [formData, setFormData] = useState({
     nome: "",
     telefone: "",
     endereco: "",
+    cpf: "",
+    cnpj: "",
   });
 
   const resetForm = () => {
-    setFormData({ nome: "", telefone: "", endereco: "" });
+    setFormData({ nome: "", telefone: "", endereco: "", cpf: "", cnpj: "" });
     setEditingCliente(null);
+    setTipoCliente("pessoa");
   };
 
   const handleSubmit = () => {
     if (!formData.nome.trim() || !formData.telefone.trim() || !formData.endereco.trim()) {
-      toast.error("Todos os campos são obrigatórios!");
+      toast.error("Nome, telefone e endereço são obrigatórios!");
       return;
     }
 
+    const clienteData = {
+      nome: formData.nome,
+      telefone: formData.telefone,
+      endereco: formData.endereco,
+      cpf: tipoCliente === "pessoa" ? formData.cpf : "",
+      cnpj: tipoCliente === "empresa" ? formData.cnpj : "",
+    };
+
     if (editingCliente) {
-      updateCliente.mutate({ id: editingCliente.id, ...formData });
+      updateCliente.mutate({ id: editingCliente.id, ...clienteData });
     } else {
-      addCliente.mutate(formData);
+      addCliente.mutate(clienteData);
     }
 
     resetForm();
@@ -73,12 +92,21 @@ export const ClientesPage = () => {
       nome: cliente.nome,
       telefone: cliente.telefone,
       endereco: cliente.endereco,
+      cpf: cliente.cpf || "",
+      cnpj: cliente.cnpj || "",
     });
+    setTipoCliente(cliente.cnpj ? "empresa" : "pessoa");
     setIsOpen(true);
   };
 
   const handleDelete = (id: string) => {
     deleteCliente.mutate(id);
+  };
+
+  const formatCpfCnpj = (cpf?: string, cnpj?: string) => {
+    if (cnpj) return `CNPJ: ${cnpj}`;
+    if (cpf) return `CPF: ${cpf}`;
+    return null;
   };
 
   if (isLoading) {
@@ -116,11 +144,35 @@ export const ClientesPage = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                {/* Tipo de Cliente */}
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome *</Label>
+                  <Label>Tipo de Cliente</Label>
+                  <Select value={tipoCliente} onValueChange={(v: "pessoa" | "empresa") => setTipoCliente(v)}>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="pessoa">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Pessoa Física
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="empresa">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Empresa
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome {tipoCliente === "empresa" ? "da Empresa" : ""} *</Label>
                   <Input
                     id="nome"
-                    placeholder="Digite o nome completo"
+                    placeholder={tipoCliente === "empresa" ? "Nome da empresa" : "Digite o nome completo"}
                     value={formData.nome}
                     onChange={(e) =>
                       setFormData({ ...formData, nome: e.target.value })
@@ -128,6 +180,36 @@ export const ClientesPage = () => {
                     className="rounded-xl"
                   />
                 </div>
+
+                {/* CPF ou CNPJ */}
+                {tipoCliente === "pessoa" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF (opcional)</Label>
+                    <Input
+                      id="cpf"
+                      placeholder="000.000.000-00"
+                      value={formData.cpf}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cpf: e.target.value })
+                      }
+                      className="rounded-xl"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="cnpj">CNPJ (opcional)</Label>
+                    <Input
+                      id="cnpj"
+                      placeholder="00.000.000/0000-00"
+                      value={formData.cnpj}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cnpj: e.target.value })
+                      }
+                      className="rounded-xl"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="telefone">Telefone *</Label>
                   <Input
@@ -183,8 +265,14 @@ export const ClientesPage = () => {
                   <div key={cliente.id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="font-mono font-bold text-[hsl(210,100%,50%)] text-sm">#{cliente.numero}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-[hsl(210,100%,50%)] text-sm">#{cliente.numero}</span>
+                          {cliente.cnpj && <Building2 className="h-3 w-3 text-muted-foreground" />}
+                        </div>
                         <p className="font-medium text-foreground">{cliente.nome}</p>
+                        {formatCpfCnpj(cliente.cpf, cliente.cnpj) && (
+                          <p className="text-xs text-muted-foreground">{formatCpfCnpj(cliente.cpf, cliente.cnpj)}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <Button
@@ -241,6 +329,7 @@ export const ClientesPage = () => {
                     <TableRow className="bg-[hsl(210,100%,97%)]">
                       <TableHead className="w-24 font-bold text-[hsl(215,70%,25%)]">ID</TableHead>
                       <TableHead className="font-bold text-[hsl(215,70%,25%)]">Nome</TableHead>
+                      <TableHead className="font-bold text-[hsl(215,70%,25%)]">CPF/CNPJ</TableHead>
                       <TableHead className="font-bold text-[hsl(215,70%,25%)]">Telefone</TableHead>
                       <TableHead className="font-bold text-[hsl(215,70%,25%)]">Endereço</TableHead>
                       <TableHead className="w-32 text-center font-bold text-[hsl(215,70%,25%)]">Ações</TableHead>
@@ -252,7 +341,15 @@ export const ClientesPage = () => {
                         <TableCell className="font-mono font-bold text-[hsl(210,100%,50%)]">
                           #{cliente.numero}
                         </TableCell>
-                        <TableCell className="font-medium">{cliente.nome}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {cliente.cnpj && <Building2 className="h-4 w-4 text-muted-foreground" />}
+                            {cliente.nome}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatCpfCnpj(cliente.cpf, cliente.cnpj) || "-"}
+                        </TableCell>
                         <TableCell>{cliente.telefone}</TableCell>
                         <TableCell>{cliente.endereco}</TableCell>
                         <TableCell>
