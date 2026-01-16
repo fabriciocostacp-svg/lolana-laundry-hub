@@ -201,7 +201,7 @@ function sanitizeInput(data: any, table: string): any {
     if (data.cliente_cpf) sanitized.cliente_cpf = String(data.cliente_cpf).replace(/[^\d]/g, '').slice(0, 11);
     if (data.cliente_cnpj) sanitized.cliente_cnpj = String(data.cliente_cnpj).replace(/[^\d]/g, '').slice(0, 14);
     if (data.numero !== undefined) sanitized.numero = String(data.numero).slice(0, 10);
-    if (data.status) sanitized.status = ['lavando', 'pronto', 'entregue'].includes(data.status) ? data.status : 'lavando';
+    if (data.status) sanitized.status = ['lavando', 'passando', 'pronto'].includes(data.status) ? data.status : 'lavando';
     if (data.valor_total !== undefined) sanitized.valor_total = Math.max(0, Number(data.valor_total) || 0);
     if (data.desconto_percentual !== undefined) sanitized.desconto_percentual = Math.max(0, Math.min(100, Number(data.desconto_percentual) || 0));
     if (data.desconto_valor !== undefined) sanitized.desconto_valor = Math.max(0, Number(data.desconto_valor) || 0);
