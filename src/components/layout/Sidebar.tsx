@@ -89,24 +89,30 @@ export const Sidebar = () => {
   return (
     <>
       {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] p-3 flex items-center justify-between shadow-lg">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[hsl(210,100%,50%)] to-[hsl(215,70%,35%)] p-3 flex items-center justify-between shadow-lg safe-top">
         <div className="flex items-center gap-2">
           <img 
             src={lolanaLogo} 
             alt="Lolana Lavanderia" 
             className="w-10 h-10 object-contain"
+            loading="eager"
           />
           <span className="text-white font-bold text-lg">Lolana</span>
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:bg-white/20 touch-target"
+              aria-label="Abrir menu"
+            >
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
           <SheetContent 
             side="left" 
-            className="p-0 w-64 bg-gradient-to-b from-[hsl(210,100%,50%)] via-[hsl(210,100%,45%)] to-[hsl(215,70%,25%)] text-white border-0"
+            className="p-0 w-[280px] max-w-[85vw] bg-gradient-to-b from-[hsl(210,100%,50%)] via-[hsl(210,100%,45%)] to-[hsl(215,70%,25%)] text-white border-0"
           >
             <SidebarContent onItemClick={() => setOpen(false)} />
           </SheetContent>
