@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { servicosFixos } from "@/data/servicos";
 import { useClientes } from "@/hooks/useClientes";
 import { usePedidos } from "@/hooks/usePedidos";
 import { ItemPedido } from "@/types";
-import { Package, ShoppingCart, UserCheck, Loader2, Search, Percent, Truck } from "lucide-react";
+import { Package, ShoppingCart, UserCheck, Loader2, Search, Percent, Truck, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const ServicosPage = () => {
   const { clientes, isLoading: loadingClientes } = useClientes();
@@ -38,6 +52,82 @@ export const ServicosPage = () => {
   const [desconto, setDesconto] = useState<string>("");
   const [tipoDesconto, setTipoDesconto] = useState<"percentual" | "valor">("percentual");
   const [taxaEntrega, setTaxaEntrega] = useState<string>("");
+  const [clienteComboOpen, setClienteComboOpen] = useState(false);
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  };
+
+  // Gerar relatório PDF de serviços
+  const handleGerarRelatorio = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Não foi possível abrir a janela de impressão. Verifique o bloqueador de pop-ups.");
+      return;
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Tabela de Preços - Lolana Lavanderia</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #1e40af; text-align: center; }
+          .header { text-align: center; margin-bottom: 30px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background-color: #1e3a5f; color: white; padding: 12px; text-align: left; }
+          td { padding: 10px; border-bottom: 1px solid #ddd; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .categoria { font-weight: bold; background-color: #e0f2fe !important; }
+          .preco { text-align: right; font-weight: bold; }
+          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🧺 Lolana Lavanderia</h1>
+          <h2>Tabela de Preços</h2>
+          <p>Data: ${new Date().toLocaleDateString("pt-BR")}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Serviço</th>
+              <th>Categoria</th>
+              <th class="preco">Preço</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${servicosFixos.map((s, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${s.nome}</td>
+                <td>${s.categoria}</td>
+                <td class="preco">${formatCurrency(s.preco)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="footer">
+          <p><strong>Obs:</strong> Quando não atingir 1kg, será cobrado por valor unitário.</p>
+          <p>Relatório gerado em ${new Date().toLocaleString("pt-BR")}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const selectedCliente = clientes.find((c) => c.id === selectedClienteId);
 
   const handleQuantidadeChange = (id: string, value: string) => {
     const num = parseInt(value) || 0;
@@ -45,13 +135,6 @@ export const ServicosPage = () => {
       ...prev,
       [id]: Math.max(0, num),
     }));
-  };
-
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
   };
 
   const subtotal = useMemo(() => {
@@ -192,24 +275,49 @@ export const ServicosPage = () => {
             <div className="flex flex-col md:flex-row md:items-end gap-4">
               <div className="flex-1 space-y-2">
                 <Label>Cliente *</Label>
-                <Select value={selectedClienteId} onValueChange={setSelectedClienteId}>
-                  <SelectTrigger className="w-full rounded-xl">
-                    <SelectValue placeholder="Selecione um cliente cadastrado" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {clientes.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        Nenhum cliente cadastrado
-                      </SelectItem>
-                    ) : (
-                      clientes.map((cliente) => (
-                        <SelectItem key={cliente.id} value={cliente.id}>
-                          #{cliente.numero} - {cliente.nome} | {cliente.telefone}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <Popover open={clienteComboOpen} onOpenChange={setClienteComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clienteComboOpen}
+                      className="w-full justify-between rounded-xl h-10 font-normal"
+                    >
+                      {selectedCliente
+                        ? `#${selectedCliente.numero} - ${selectedCliente.nome} | ${selectedCliente.telefone}`
+                        : "Digite para buscar ou selecione um cliente..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 rounded-xl" align="start">
+                    <Command className="rounded-xl">
+                      <CommandInput placeholder="Buscar cliente por nome, telefone ou número..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {clientes.map((cliente) => (
+                            <CommandItem
+                              key={cliente.id}
+                              value={`${cliente.numero} ${cliente.nome} ${cliente.telefone}`}
+                              onSelect={() => {
+                                setSelectedClienteId(cliente.id);
+                                setClienteComboOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedClienteId === cliente.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              #{cliente.numero} - {cliente.nome} | {cliente.telefone}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               {clientes.length === 0 && (
                 <p className="text-sm text-muted-foreground">
@@ -304,6 +412,15 @@ export const ServicosPage = () => {
               <div className="flex items-center gap-3">
                 <Package className="h-5 w-5 md:h-6 md:w-6 text-[hsl(210,100%,50%)]" />
                 <CardTitle className="text-[hsl(215,70%,25%)] text-lg md:text-xl">Tabela de Serviços</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGerarRelatorio}
+                  className="rounded-xl gap-2 ml-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Gerar Relatório</span>
+                </Button>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                 <div className="text-left sm:text-right space-y-1">
