@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import DOMPurify from "dompurify";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -97,7 +98,13 @@ export const PedidosPage = () => {
 
   const handlePrint = () => {
     if (cupomRef.current) {
-      const printContent = cupomRef.current.innerHTML;
+      // SECURITY: Sanitize HTML content before writing to print window
+      const rawContent = cupomRef.current.innerHTML;
+      const sanitizedContent = DOMPurify.sanitize(rawContent, {
+        ALLOWED_TAGS: ['div', 'span', 'p', 'h1', 'h2', 'h3', 'img', 'table', 'tr', 'td', 'th', 'tbody', 'thead', 'strong', 'em', 'br'],
+        ALLOWED_ATTR: ['class', 'style', 'src', 'alt'],
+      });
+      
       const printWindow = window.open("", "_blank");
       if (printWindow) {
         printWindow.document.write(`
@@ -109,7 +116,7 @@ export const PedidosPage = () => {
                 * { box-sizing: border-box; }
               </style>
             </head>
-            <body>${printContent}</body>
+            <body>${sanitizedContent}</body>
           </html>
         `);
         printWindow.document.close();

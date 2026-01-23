@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
+import DOMPurify from "dompurify";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,16 @@ export const ServicosPage = () => {
     });
   };
 
+  // SECURITY: Sanitize text to prevent XSS in print output
+  const sanitizeText = (text: string): string => {
+    return DOMPurify.sanitize(text, { ALLOWED_TAGS: [] })
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
   // Gerar relatório PDF de serviços
   const handleGerarRelatorio = () => {
     const printWindow = window.open("", "_blank");
@@ -68,6 +79,16 @@ export const ServicosPage = () => {
       toast.error("Não foi possível abrir a janela de impressão. Verifique o bloqueador de pop-ups.");
       return;
     }
+
+    // SECURITY: Build table rows with sanitized data
+    const tableRows = servicosFixos.map((s, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${sanitizeText(s.nome)}</td>
+        <td>${sanitizeText(s.categoria)}</td>
+        <td class="preco">${formatCurrency(s.preco)}</td>
+      </tr>
+    `).join("");
 
     const html = `
       <!DOCTYPE html>
@@ -104,14 +125,7 @@ export const ServicosPage = () => {
             </tr>
           </thead>
           <tbody>
-            ${servicosFixos.map((s, i) => `
-              <tr>
-                <td>${i + 1}</td>
-                <td>${s.nome}</td>
-                <td>${s.categoria}</td>
-                <td class="preco">${formatCurrency(s.preco)}</td>
-              </tr>
-            `).join("")}
+            ${tableRows}
           </tbody>
         </table>
         <div class="footer">
