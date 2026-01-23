@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import { generateResetToken, hashPassword, validatePasswordStrength } from '../_shared/crypto.ts';
+import { checkRateLimit, recordLoginAttempt, getClientIP } from '../_shared/rate-limit.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -12,6 +13,7 @@ Deno.serve(async (req) => {
   try {
     const { telefone, token, novaSenha, action } = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const clientIP = getClientIP(req);
 
     if (action === 'request') {
       // Request password reset
@@ -24,6 +26,30 @@ Deno.serve(async (req) => {
 
       const sanitizedTelefone = telefone.trim().slice(0, 20);
 
+      // Check rate limit for phone number
+      const phoneRateLimit = await checkRateLimit(sanitizedTelefone, 'phone', 'resetPassword', clientIP);
+      if (!phoneRateLimit.allowed) {
+        console.warn(`Rate limit exceeded for reset password: ${sanitizedTelefone} from IP: ${clientIP}`);
+        return new Response(
+          JSON.stringify({ 
+            error: `Muitas solicitações de redefinição. Tente novamente em ${phoneRateLimit.retryAfterMinutes} minutos.` 
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check rate limit for IP
+      const ipRateLimit = await checkRateLimit(clientIP, 'ip', 'resetPassword');
+      if (!ipRateLimit.allowed) {
+        console.warn(`Rate limit exceeded for IP on reset password: ${clientIP}`);
+        return new Response(
+          JSON.stringify({ 
+            error: `Muitas solicitações deste endereço. Tente novamente em ${ipRateLimit.retryAfterMinutes} minutos.` 
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data: funcionario, error } = await supabase
         .from('funcionarios')
         .select('id, nome, usuario')
@@ -32,11 +58,17 @@ Deno.serve(async (req) => {
         .single();
 
       if (error || !funcionario) {
+        // Record the attempt even for non-existent phones
+        await recordLoginAttempt(sanitizedTelefone, 'phone', false, clientIP);
+        
         return new Response(
           JSON.stringify({ error: 'Telefone não encontrado' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      // Record successful lookup
+      await recordLoginAttempt(sanitizedTelefone, 'phone', true, clientIP);
 
       // Generate reset token
       const resetToken = generateResetToken();
@@ -97,7 +129,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Hash new password
+      // Hash new password with bcrypt
       const hashedPassword = await hashPassword(novaSenha);
 
       // Update password

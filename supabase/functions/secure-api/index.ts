@@ -25,6 +25,45 @@ async function validateSession(sessionToken: string | null): Promise<{ valid: bo
   return { valid: true, funcionario: session.funcionarios };
 }
 
+// Mask sensitive PII data based on user permissions
+function maskClientePII(data: any, isAdmin: boolean): any {
+  if (!data) return data;
+  
+  const maskValue = (value: string | null, keepLast = 4): string | null => {
+    if (!value) return null;
+    const clean = value.replace(/\D/g, '');
+    if (clean.length <= keepLast) return value;
+    return '*'.repeat(clean.length - keepLast) + clean.slice(-keepLast);
+  };
+
+  // If array, process each item
+  if (Array.isArray(data)) {
+    return data.map(item => maskClientePII(item, isAdmin));
+  }
+
+  // Clone object to avoid mutation
+  const result = { ...data };
+  
+  // Only admins can see full CPF/CNPJ
+  if (!isAdmin) {
+    if (result.cpf) {
+      result.cpf = maskValue(result.cpf, 4);
+    }
+    if (result.cnpj) {
+      result.cnpj = maskValue(result.cnpj, 4);
+    }
+    // For pedidos, also mask cliente_cpf and cliente_cnpj
+    if (result.cliente_cpf) {
+      result.cliente_cpf = maskValue(result.cliente_cpf, 4);
+    }
+    if (result.cliente_cnpj) {
+      result.cliente_cnpj = maskValue(result.cliente_cnpj, 4);
+    }
+  }
+  
+  return result;
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -40,6 +79,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    const isAdmin = auth.funcionario?.is_admin === true;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const url = new URL(req.url);
     const table = url.searchParams.get('table');
@@ -62,7 +102,11 @@ Deno.serve(async (req) => {
         error = result.error;
       } else {
         if (table === 'clientes') {
-          const result = await supabase.from(table).select('*').order('numero', { ascending: true });
+          // Select only necessary fields, omit sensitive data for non-admins
+          const selectFields = isAdmin 
+            ? '*' 
+            : 'id, numero, nome, telefone, endereco, created_at, updated_at';
+          const result = await supabase.from(table).select(selectFields).order('numero', { ascending: true });
           data = result.data;
           error = result.error;
         } else {
@@ -79,8 +123,11 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Apply PII masking
+      const maskedData = maskClientePII(data, isAdmin);
+
       return new Response(
-        JSON.stringify({ data }),
+        JSON.stringify({ data: maskedData }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -105,7 +152,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ data }),
+        JSON.stringify({ data: maskClientePII(data, isAdmin) }),
         { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -138,7 +185,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ data }),
+        JSON.stringify({ data: maskClientePII(data, isAdmin) }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

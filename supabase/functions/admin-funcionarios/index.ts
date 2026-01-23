@@ -26,6 +26,56 @@ async function validateSession(sessionToken: string | null): Promise<{ valid: bo
   return { valid: true, funcionario: session.funcionarios };
 }
 
+// RBAC: Check if user can view/modify another user's data
+function canAccessFuncionarioData(
+  requester: any, 
+  targetId: string | null, 
+  action: 'view' | 'modify'
+): boolean {
+  // Admins can access all data
+  if (requester.is_admin) {
+    return true;
+  }
+  
+  // Non-admins can only view/modify their own data
+  if (targetId && requester.id === targetId) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Mask sensitive data for non-admin users viewing other employees
+function maskFuncionarioData(data: any, requesterId: string, isAdmin: boolean): any {
+  if (!data) return data;
+  
+  if (Array.isArray(data)) {
+    return data.map(item => maskFuncionarioData(item, requesterId, isAdmin));
+  }
+
+  // Clone to avoid mutation
+  const result = { ...data };
+  
+  // Non-admins can see limited data about other employees
+  if (!isAdmin && result.id !== requesterId) {
+    // Only show name and basic info, hide sensitive data
+    return {
+      id: result.id,
+      nome: result.nome,
+      usuario: result.usuario,
+      // Hide phone for other employees (privacy)
+      telefone: null,
+      // Hide permissions (security)
+      pode_dar_desconto: undefined,
+      pode_cobrar_taxa: undefined,
+      pode_pagar_depois: undefined,
+      is_admin: undefined,
+    };
+  }
+  
+  return result;
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -34,16 +84,41 @@ Deno.serve(async (req) => {
     const sessionToken = req.headers.get('x-session-token');
     const auth = await validateSession(sessionToken);
 
-    if (!auth.valid || !auth.funcionario.is_admin) {
+    if (!auth.valid) {
       return new Response(
-        JSON.stringify({ error: 'Não autorizado - requer privilégios de administrador' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const isAdmin = auth.funcionario.is_admin === true;
+    const requesterId = auth.funcionario.id;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method === 'GET') {
+      // RBAC: Only admins can list all employees
+      if (!isAdmin) {
+        // Non-admins can only see their own data
+        const { data, error } = await supabase
+          .from('funcionarios')
+          .select('id, nome, usuario, telefone, pode_dar_desconto, pode_cobrar_taxa, pode_pagar_depois, is_admin')
+          .eq('id', requesterId)
+          .eq('ativo', true)
+          .single();
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ data: [data] }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data, error } = await supabase
         .from('funcionarios')
         .select('id, nome, usuario, telefone, pode_dar_desconto, pode_cobrar_taxa, pode_pagar_depois, is_admin, ativo, created_at, updated_at')
@@ -64,6 +139,14 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'POST') {
+      // RBAC: Only admins can create new employees
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Não autorizado - requer privilégios de administrador' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const body = await req.json();
       
       // Validate required fields
@@ -97,7 +180,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Hash password
+      // Hash password with bcrypt
       const hashedPassword = await hashPassword(body.senha);
 
       const { data, error } = await supabase
@@ -140,17 +223,34 @@ Deno.serve(async (req) => {
         );
       }
 
-      const sanitizedData: any = {
-        nome: String(updateData.nome).trim().slice(0, 255),
-        usuario: String(updateData.usuario).trim().slice(0, 100),
-        telefone: updateData.telefone ? String(updateData.telefone).slice(0, 20) : null,
-        pode_dar_desconto: Boolean(updateData.pode_dar_desconto),
-        pode_cobrar_taxa: Boolean(updateData.pode_cobrar_taxa),
-        pode_pagar_depois: Boolean(updateData.pode_pagar_depois),
-        is_admin: Boolean(updateData.is_admin),
-      };
+      // RBAC: Check if user can modify this employee
+      if (!canAccessFuncionarioData(auth.funcionario, id, 'modify')) {
+        return new Response(
+          JSON.stringify({ error: 'Não autorizado - você não pode modificar dados de outros funcionários' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-      // Only update password if provided
+      // Non-admins can only update their own password and phone
+      const sanitizedData: any = {};
+      
+      if (isAdmin) {
+        // Admins can update everything
+        sanitizedData.nome = String(updateData.nome).trim().slice(0, 255);
+        sanitizedData.usuario = String(updateData.usuario).trim().slice(0, 100);
+        sanitizedData.telefone = updateData.telefone ? String(updateData.telefone).slice(0, 20) : null;
+        sanitizedData.pode_dar_desconto = Boolean(updateData.pode_dar_desconto);
+        sanitizedData.pode_cobrar_taxa = Boolean(updateData.pode_cobrar_taxa);
+        sanitizedData.pode_pagar_depois = Boolean(updateData.pode_pagar_depois);
+        sanitizedData.is_admin = Boolean(updateData.is_admin);
+      } else {
+        // Non-admins can only update phone
+        if (updateData.telefone !== undefined) {
+          sanitizedData.telefone = updateData.telefone ? String(updateData.telefone).slice(0, 20) : null;
+        }
+      }
+
+      // Password update (for both admin and self)
       if (senha) {
         // Validate password strength
         const passwordValidation = validatePasswordStrength(senha);
@@ -161,6 +261,14 @@ Deno.serve(async (req) => {
           );
         }
         sanitizedData.senha = await hashPassword(senha);
+      }
+
+      // Ensure we have something to update
+      if (Object.keys(sanitizedData).length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Nenhum dado para atualizar' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       const { data, error } = await supabase
@@ -184,12 +292,28 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'DELETE') {
+      // RBAC: Only admins can delete employees
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Não autorizado - requer privilégios de administrador' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const url = new URL(req.url);
       const id = url.searchParams.get('id');
 
       if (!id) {
         return new Response(
           JSON.stringify({ error: 'ID é obrigatório' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Prevent admin from deleting themselves
+      if (id === requesterId) {
+        return new Response(
+          JSON.stringify({ error: 'Você não pode excluir sua própria conta' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

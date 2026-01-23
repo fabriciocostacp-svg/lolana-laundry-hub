@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import DOMPurify from "dompurify";
 import lolanaLogo from "@/assets/lolana.png";
 import { PedidoDB } from "@/hooks/usePedidos";
 
@@ -6,6 +7,28 @@ interface CupomImpressaoProps {
   pedido: PedidoDB;
   cpfCnpj?: string;
 }
+
+// Sanitize text to prevent XSS
+const sanitizeText = (text: string | null | undefined): string => {
+  if (!text) return "";
+  // First sanitize with DOMPurify, then escape HTML entities
+  const sanitized = DOMPurify.sanitize(text, { ALLOWED_TAGS: [] });
+  return sanitized
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// Mask sensitive data (show only last 4 digits)
+const maskCpfCnpj = (value: string | null | undefined): string => {
+  if (!value) return "";
+  const clean = value.replace(/\D/g, "");
+  if (clean.length <= 4) return clean;
+  const masked = "*".repeat(clean.length - 4) + clean.slice(-4);
+  return masked;
+};
 
 export const CupomImpressao = forwardRef<HTMLDivElement, CupomImpressaoProps>(
   ({ pedido, cpfCnpj }, ref) => {
@@ -37,6 +60,11 @@ export const CupomImpressao = forwardRef<HTMLDivElement, CupomImpressaoProps>(
     
     const valorDescontoPercentual = (subtotal * descontoPercentual) / 100;
     const descontoTotal = valorDescontoPercentual + descontoValor;
+
+    // Sanitize all user-provided data
+    const safeClienteNome = sanitizeText(pedido.cliente_nome);
+    const safeClienteTelefone = sanitizeText(pedido.cliente_telefone);
+    const safeCpfCnpj = maskCpfCnpj(cpfCnpj || pedido.cliente_cpf || pedido.cliente_cnpj);
 
     return (
       <div
@@ -72,10 +100,10 @@ export const CupomImpressao = forwardRef<HTMLDivElement, CupomImpressaoProps>(
 
         {/* Dados do Cliente */}
         <div className="mb-2">
-          <p><strong>Cliente:</strong> {pedido.cliente_nome}</p>
-          <p><strong>Tel:</strong> {pedido.cliente_telefone}</p>
-          {(cpfCnpj || pedido.cliente_cpf || pedido.cliente_cnpj) && (
-            <p><strong>CPF/CNPJ:</strong> {cpfCnpj || pedido.cliente_cpf || pedido.cliente_cnpj}</p>
+          <p><strong>Cliente:</strong> {safeClienteNome}</p>
+          <p><strong>Tel:</strong> {safeClienteTelefone}</p>
+          {safeCpfCnpj && (
+            <p><strong>CPF/CNPJ:</strong> {safeCpfCnpj}</p>
           )}
         </div>
 
@@ -86,7 +114,7 @@ export const CupomImpressao = forwardRef<HTMLDivElement, CupomImpressaoProps>(
           <p className="font-bold mb-1">ITENS:</p>
           {pedido.itens.map((item, i) => (
             <div key={i} className="flex justify-between text-[10px]">
-              <span>{item.quantidade}x {item.servico.nome}</span>
+              <span>{item.quantidade}x {sanitizeText(item.servico.nome)}</span>
               <span>{formatCurrency(item.servico.preco * item.quantidade)}</span>
             </div>
           ))}
@@ -130,7 +158,7 @@ export const CupomImpressao = forwardRef<HTMLDivElement, CupomImpressaoProps>(
         <div className="text-center">
           <p><strong>Status:</strong> {pedido.status.toUpperCase()}</p>
           {pedido.retirado && (
-            <p className={pedido.pago ? "text-green-600" : "text-red-600"}>
+            <p className={pedido.pago ? "text-emerald-700" : "text-destructive"}>
               {pedido.pago ? "✓ PAGO" : "✗ NÃO PAGO"}
             </p>
           )}
