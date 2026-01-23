@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { apiLogin, apiLogout, apiValidateSession, LoginResponse } from "@/lib/api";
+import { isValidSessionToken, clearAllSessionData, safeError } from "@/lib/security-utils";
 
 export interface FuncionarioPermissions {
   pode_dar_desconto: boolean;
@@ -37,19 +38,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Validate session on mount
+  // Secure session clearing - removes all sensitive data
+  const clearSession = useCallback(() => {
+    clearAllSessionData();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setSessionToken(null);
+  }, []);
+
+  // Validate session on mount - with strict token validation
   useEffect(() => {
     const validateStoredSession = async () => {
       const storedToken = localStorage.getItem(SESSION_KEY);
       const storedExpires = localStorage.getItem(EXPIRES_KEY);
       const storedUser = localStorage.getItem(USER_KEY);
 
-      if (!storedToken || !storedExpires || !storedUser) {
+      // SECURITY: Validate token format before using
+      if (!storedToken || !storedExpires || !storedUser || !isValidSessionToken(storedToken)) {
+        clearSession();
         setIsLoading(false);
         return;
       }
 
-      // Check if session is expired
+      // Check if session is expired locally first
       if (new Date(storedExpires) < new Date()) {
         clearSession();
         setIsLoading(false);
@@ -57,46 +68,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
+        // SECURITY: Always validate session with server
         const result = await apiValidateSession(storedToken);
         
         if (result.valid && result.user) {
+          // SECURITY: Use server-provided user data, not local storage
           setIsAuthenticated(true);
           setCurrentUser(result.user);
           setSessionToken(storedToken);
+          
+          // Update local storage with fresh server data
+          localStorage.setItem(USER_KEY, JSON.stringify(result.user));
         } else {
+          // Server rejected the session - clear everything
           clearSession();
         }
-      } catch {
-        // If validation fails, try to use stored user data
-        // (in case edge function is temporarily unavailable)
-        try {
-          const user = JSON.parse(storedUser);
-          setIsAuthenticated(true);
-          setCurrentUser(user);
-          setSessionToken(storedToken);
-        } catch {
-          clearSession();
-        }
+      } catch (error) {
+        safeError("Session validation failed", error);
+        // SECURITY: On network error, don't use cached data - require re-login
+        // This prevents using stale/potentially compromised sessions
+        clearSession();
       }
       
       setIsLoading(false);
     };
 
     validateStoredSession();
-  }, []);
+  }, [clearSession]);
 
-  const clearSession = () => {
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(EXPIRES_KEY);
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    setSessionToken(null);
-  };
-
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     try {
       const response: LoginResponse = await apiLogin(username, password);
+      
+      // SECURITY: Validate response has all required fields
+      if (!response.sessionToken || !response.user || !response.expiresAt) {
+        safeError("Invalid login response structure");
+        return false;
+      }
+
+      // SECURITY: Validate session token format
+      if (!isValidSessionToken(response.sessionToken)) {
+        safeError("Invalid session token format received");
+        return false;
+      }
       
       // Store session data
       localStorage.setItem(SESSION_KEY, response.sessionToken);
@@ -108,21 +122,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSessionToken(response.sessionToken);
       
       return true;
-    } catch {
+    } catch (error) {
+      safeError("Login failed", error);
       return false;
     }
-  };
+  }, []);
 
-  const logout = async () => {
-    if (sessionToken) {
+  const logout = useCallback(async () => {
+    const token = sessionToken;
+    
+    // Clear local state immediately for security
+    clearSession();
+    
+    // Then notify server (best effort)
+    if (token) {
       try {
-        await apiLogout(sessionToken);
+        await apiLogout(token);
       } catch {
-        // Ignore logout errors - still clear local session
+        // Ignore logout errors - local session is already cleared
       }
     }
-    clearSession();
-  };
+  }, [sessionToken, clearSession]);
 
   return (
     <AuthContext.Provider value={{ 
