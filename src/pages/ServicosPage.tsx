@@ -79,8 +79,7 @@ export const ServicosPage = () => {
       return;
     }
 
-    // SECURITY: Build table rows with sanitized data
-    const tableRows = servicosFixos.map((s, i) => `
+    const tableRows = servicosDB.map((s, i) => `
       <tr>
         <td>${i + 1}</td>
         <td>${sanitizeText(s.nome)}</td>
