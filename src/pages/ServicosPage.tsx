@@ -169,26 +169,25 @@ export const ServicosPage = () => {
 
   // Filtrar serviços pela busca (nome, categoria ou número)
   const servicosFiltrados = useMemo(() => {
-    if (!searchTerm.trim()) return servicosFixos;
+    if (!searchTerm.trim()) return servicosDB;
     const term = searchTerm.toLowerCase().trim();
     
-    // Verificar se é busca por números separados por vírgula
     const numeros = term.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     
     if (numeros.length > 0) {
-      return servicosFixos.filter((s, index) => 
+      return servicosDB.filter((s, index) => 
         numeros.includes(index + 1) ||
         s.nome.toLowerCase().includes(term) ||
         s.categoria.toLowerCase().includes(term)
       );
     }
     
-    return servicosFixos.filter(
+    return servicosDB.filter(
       (s) =>
         s.nome.toLowerCase().includes(term) ||
         s.categoria.toLowerCase().includes(term)
     );
-  }, [searchTerm]);
+  }, [searchTerm, servicosDB]);
 
   // Agrupar serviços filtrados por categoria
   const categoriasFiltradas = useMemo(() => {
