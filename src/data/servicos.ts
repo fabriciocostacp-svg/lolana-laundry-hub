@@ -25,4 +25,5 @@ export const servicosFixos: Servico[] = [
   { id: "unitario-2", nome: "Camiseta", categoria: "Valor Unitário", preco: 8.00 },
   { id: "unitario-3", nome: "Short", categoria: "Valor Unitário", preco: 6.00 },
   { id: "unitario-4", nome: "Paletó", categoria: "Valor Unitário", preco: 30.00 },
+  { id: "unitario-5", nome: "Terno completo", categoria: "Valor Unitário", preco: 70.00 },
 ];
