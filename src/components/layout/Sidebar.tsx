@@ -15,6 +15,7 @@ const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => {
   const menuItems = [
     { icon: Users, label: "Clientes", path: "/clientes" },
     { icon: Package, label: "Serviços", path: "/servicos" },
+    { icon: Settings, label: "Gerenciar Serviços", path: "/gerenciar-servicos" },
     { icon: ClipboardList, label: "Pedidos", path: "/pedidos" },
     ...(currentUser?.permissions.is_admin ? [{ icon: UserCog, label: "Funcionários", path: "/funcionarios" }] : []),
   ];

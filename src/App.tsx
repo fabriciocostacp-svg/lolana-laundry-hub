@@ -42,6 +42,13 @@ const App = () => (
               }
             />
             <Route
+              path="/gerenciar-servicos"
+              element={
+                <ProtectedRoute>
+                  <ServicosGerenciamentoPage />
+                </ProtectedRoute>
+              }
+            <Route
               path="/pedidos"
               element={
                 <ProtectedRoute>
