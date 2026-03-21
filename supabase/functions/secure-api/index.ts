@@ -261,5 +261,12 @@ function sanitizeInput(data: any, table: string): any {
     if (data.itens) sanitized.itens = Array.isArray(data.itens) ? data.itens : [];
   }
 
+  if (table === 'servicos') {
+    if (data.nome) sanitized.nome = String(data.nome).trim().slice(0, 255);
+    if (data.categoria) sanitized.categoria = String(data.categoria).trim().slice(0, 100);
+    if (data.preco !== undefined) sanitized.preco = Math.max(0, Number(data.preco) || 0);
+    if (data.ativo !== undefined) sanitized.ativo = Boolean(data.ativo);
+  }
+
   return sanitized;
 }
