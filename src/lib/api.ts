@@ -142,7 +142,7 @@ export async function apiCreateData<T>(
 }
 
 export async function apiUpdateData<T>(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   id: string,
   data: Record<string, unknown>
