@@ -221,10 +221,10 @@ export const ServicosPage = () => {
       return;
     }
 
-    const itens: ItemPedido[] = servicosFixos
+    const itens: ItemPedido[] = servicosDB
       .filter((s) => quantidades[s.id] > 0)
       .map((s) => ({
-        servico: s,
+        servico: { id: s.id, nome: s.nome, categoria: s.categoria, preco: s.preco },
         quantidade: quantidades[s.id],
       }));
 
