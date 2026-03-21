@@ -155,7 +155,7 @@ export async function apiUpdateData<T>(
 }
 
 export async function apiDeleteData(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   id: string
 ): Promise<{ success: boolean }> {
