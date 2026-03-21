@@ -150,10 +150,10 @@ export const ServicosPage = () => {
   };
 
   const subtotal = useMemo(() => {
-    return servicosFixos.reduce((acc, servico) => {
+    return servicosDB.reduce((acc, servico) => {
       return acc + servico.preco * (quantidades[servico.id] || 0);
     }, 0);
-  }, [quantidades]);
+  }, [quantidades, servicosDB]);
 
   const descontoNum = parseFloat(desconto) || 0;
   const taxaEntregaNum = parseInt(taxaEntrega) || 0;
