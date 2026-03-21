@@ -208,11 +208,11 @@ export const ServicosPage = () => {
   // Criar índice numérico para os serviços
   const servicoIndex = useMemo(() => {
     const index: Record<string, number> = {};
-    servicosFixos.forEach((s, i) => {
+    servicosDB.forEach((s, i) => {
       index[s.id] = i + 1;
     });
     return index;
-  }, []);
+  }, [servicosDB]);
 
   const handleCriarPedido = () => {
     const cliente = clientes.find((c) => c.id === selectedClienteId);
