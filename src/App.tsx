@@ -49,6 +49,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
               path="/pedidos"
               element={
                 <ProtectedRoute>
