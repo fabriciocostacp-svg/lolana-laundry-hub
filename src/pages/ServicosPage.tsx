@@ -164,8 +164,8 @@ export const ServicosPage = () => {
   const total = Math.max(0, subtotal - descontoTotal + taxaEntregaNum);
 
   const categorias = useMemo(() => {
-    return [...new Set(servicosFixos.map((s) => s.categoria))];
-  }, []);
+    return [...new Set(servicosDB.map((s) => s.categoria))];
+  }, [servicosDB]);
 
   // Filtrar serviços pela busca (nome, categoria ou número)
   const servicosFiltrados = useMemo(() => {
