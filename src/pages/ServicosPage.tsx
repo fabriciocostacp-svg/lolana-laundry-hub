@@ -34,7 +34,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { servicosFixos } from "@/data/servicos";
+import { useServicos } from "@/hooks/useServicos";
 import { useClientes } from "@/hooks/useClientes";
 import { usePedidos } from "@/hooks/usePedidos";
 import { ItemPedido } from "@/types";
