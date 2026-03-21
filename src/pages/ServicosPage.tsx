@@ -243,7 +243,7 @@ export const ServicosPage = () => {
     
     // Reset form
     setSelectedClienteId("");
-    setQuantidades(servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {}));
+    setQuantidades({});
     setDesconto("");
     setTipoDesconto("percentual");
     setTaxaEntrega("");
