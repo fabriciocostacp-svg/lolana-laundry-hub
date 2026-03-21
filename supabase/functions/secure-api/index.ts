@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const table = url.searchParams.get('table');
 
-    if (!table || !['clientes', 'pedidos'].includes(table)) {
+    if (!table || !['clientes', 'pedidos', 'servicos'].includes(table)) {
       return new Response(
         JSON.stringify({ error: 'Tabela inválida' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
