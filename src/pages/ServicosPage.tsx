@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import DOMPurify from "dompurify";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { servicosFixos } from "@/data/servicos";
+import { useServicos } from "@/hooks/useServicos";
 import { useClientes } from "@/hooks/useClientes";
 import { usePedidos } from "@/hooks/usePedidos";
 import { ItemPedido } from "@/types";
@@ -44,11 +44,10 @@ import { cn } from "@/lib/utils";
 
 export const ServicosPage = () => {
   const { clientes, isLoading: loadingClientes } = useClientes();
+  const { servicos: servicosDB, isLoading: loadingServicos } = useServicos();
   const { addPedido } = usePedidos();
   const [selectedClienteId, setSelectedClienteId] = useState<string>("");
-  const [quantidades, setQuantidades] = useState<Record<string, number>>(
-    servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
-  );
+  const [quantidades, setQuantidades] = useState<Record<string, number>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [desconto, setDesconto] = useState<string>("");
   const [tipoDesconto, setTipoDesconto] = useState<"percentual" | "valor">("percentual");
@@ -80,8 +79,7 @@ export const ServicosPage = () => {
       return;
     }
 
-    // SECURITY: Build table rows with sanitized data
-    const tableRows = servicosFixos.map((s, i) => `
+    const tableRows = servicosDB.map((s, i) => `
       <tr>
         <td>${i + 1}</td>
         <td>${sanitizeText(s.nome)}</td>
@@ -152,10 +150,10 @@ export const ServicosPage = () => {
   };
 
   const subtotal = useMemo(() => {
-    return servicosFixos.reduce((acc, servico) => {
+    return servicosDB.reduce((acc, servico) => {
       return acc + servico.preco * (quantidades[servico.id] || 0);
     }, 0);
-  }, [quantidades]);
+  }, [quantidades, servicosDB]);
 
   const descontoNum = parseFloat(desconto) || 0;
   const taxaEntregaNum = parseInt(taxaEntrega) || 0;
@@ -166,31 +164,30 @@ export const ServicosPage = () => {
   const total = Math.max(0, subtotal - descontoTotal + taxaEntregaNum);
 
   const categorias = useMemo(() => {
-    return [...new Set(servicosFixos.map((s) => s.categoria))];
-  }, []);
+    return [...new Set(servicosDB.map((s) => s.categoria))];
+  }, [servicosDB]);
 
   // Filtrar serviços pela busca (nome, categoria ou número)
   const servicosFiltrados = useMemo(() => {
-    if (!searchTerm.trim()) return servicosFixos;
+    if (!searchTerm.trim()) return servicosDB;
     const term = searchTerm.toLowerCase().trim();
     
-    // Verificar se é busca por números separados por vírgula
     const numeros = term.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     
     if (numeros.length > 0) {
-      return servicosFixos.filter((s, index) => 
+      return servicosDB.filter((s, index) => 
         numeros.includes(index + 1) ||
         s.nome.toLowerCase().includes(term) ||
         s.categoria.toLowerCase().includes(term)
       );
     }
     
-    return servicosFixos.filter(
+    return servicosDB.filter(
       (s) =>
         s.nome.toLowerCase().includes(term) ||
         s.categoria.toLowerCase().includes(term)
     );
-  }, [searchTerm]);
+  }, [searchTerm, servicosDB]);
 
   // Agrupar serviços filtrados por categoria
   const categoriasFiltradas = useMemo(() => {
@@ -211,11 +208,11 @@ export const ServicosPage = () => {
   // Criar índice numérico para os serviços
   const servicoIndex = useMemo(() => {
     const index: Record<string, number> = {};
-    servicosFixos.forEach((s, i) => {
+    servicosDB.forEach((s, i) => {
       index[s.id] = i + 1;
     });
     return index;
-  }, []);
+  }, [servicosDB]);
 
   const handleCriarPedido = () => {
     const cliente = clientes.find((c) => c.id === selectedClienteId);
@@ -224,10 +221,10 @@ export const ServicosPage = () => {
       return;
     }
 
-    const itens: ItemPedido[] = servicosFixos
+    const itens: ItemPedido[] = servicosDB
       .filter((s) => quantidades[s.id] > 0)
       .map((s) => ({
-        servico: s,
+        servico: { id: s.id, nome: s.nome, categoria: s.categoria, preco: s.preco },
         quantidade: quantidades[s.id],
       }));
 
@@ -246,7 +243,7 @@ export const ServicosPage = () => {
     
     // Reset form
     setSelectedClienteId("");
-    setQuantidades(servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {}));
+    setQuantidades({});
     setDesconto("");
     setTipoDesconto("percentual");
     setTaxaEntrega("");
@@ -264,7 +261,7 @@ export const ServicosPage = () => {
     toast.success("Serviço adicionado!");
   };
 
-  if (loadingClientes) {
+  if (loadingClientes || loadingServicos) {
     return (
       <MainLayout title="Serviços">
         <div className="flex items-center justify-center h-64">

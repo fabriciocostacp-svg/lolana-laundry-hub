@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { ClientesPage } from "./pages/ClientesPage";
 import { ServicosPage } from "./pages/ServicosPage";
+import { ServicosGerenciamentoPage } from "./pages/ServicosGerenciamentoPage";
 import { PedidosPage } from "./pages/PedidosPage";
 import { FuncionariosPage } from "./pages/FuncionariosPage";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ServicosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gerenciar-servicos"
+              element={
+                <ProtectedRoute>
+                  <ServicosGerenciamentoPage />
                 </ProtectedRoute>
               }
             />

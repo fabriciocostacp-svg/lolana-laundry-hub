@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const table = url.searchParams.get('table');
 
-    if (!table || !['clientes', 'pedidos'].includes(table)) {
+    if (!table || !['clientes', 'pedidos', 'servicos'].includes(table)) {
       return new Response(
         JSON.stringify({ error: 'Tabela inválida' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -102,11 +102,14 @@ Deno.serve(async (req) => {
         error = result.error;
       } else {
         if (table === 'clientes') {
-          // Select only necessary fields, omit sensitive data for non-admins
           const selectFields = isAdmin 
             ? '*' 
             : 'id, numero, nome, telefone, endereco, created_at, updated_at';
           const result = await supabase.from(table).select(selectFields).order('numero', { ascending: true });
+          data = result.data;
+          error = result.error;
+        } else if (table === 'servicos') {
+          const result = await supabase.from(table).select('*').order('categoria', { ascending: true }).order('nome', { ascending: true });
           data = result.data;
           error = result.error;
         } else {
@@ -256,6 +259,13 @@ function sanitizeInput(data: any, table: string): any {
     if (data.pago !== undefined) sanitized.pago = Boolean(data.pago);
     if (data.retirado !== undefined) sanitized.retirado = Boolean(data.retirado);
     if (data.itens) sanitized.itens = Array.isArray(data.itens) ? data.itens : [];
+  }
+
+  if (table === 'servicos') {
+    if (data.nome) sanitized.nome = String(data.nome).trim().slice(0, 255);
+    if (data.categoria) sanitized.categoria = String(data.categoria).trim().slice(0, 100);
+    if (data.preco !== undefined) sanitized.preco = Math.max(0, Number(data.preco) || 0);
+    if (data.ativo !== undefined) sanitized.ativo = Boolean(data.ativo);
   }
 
   return sanitized;

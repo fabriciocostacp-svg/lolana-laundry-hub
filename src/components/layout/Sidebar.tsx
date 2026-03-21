@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Package, ClipboardList, LogOut, Menu, UserCog } from "lucide-react";
+import { Users, Package, ClipboardList, LogOut, Menu, UserCog, Settings } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => {
   const menuItems = [
     { icon: Users, label: "Clientes", path: "/clientes" },
     { icon: Package, label: "Serviços", path: "/servicos" },
+    { icon: Settings, label: "Gerenciar Serviços", path: "/gerenciar-servicos" },
     { icon: ClipboardList, label: "Pedidos", path: "/pedidos" },
     ...(currentUser?.permissions.is_admin ? [{ icon: UserCog, label: "Funcionários", path: "/funcionarios" }] : []),
   ];

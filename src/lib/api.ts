@@ -116,7 +116,7 @@ export async function apiResetPassword(token: string, novaSenha: string): Promis
 
 // Data APIs
 export async function apiGetData<T>(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   id?: string
 ): Promise<{ data: T }> {
@@ -130,7 +130,7 @@ export async function apiGetData<T>(
 }
 
 export async function apiCreateData<T>(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   data: Record<string, unknown>
 ): Promise<{ data: T }> {
@@ -142,7 +142,7 @@ export async function apiCreateData<T>(
 }
 
 export async function apiUpdateData<T>(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   id: string,
   data: Record<string, unknown>
@@ -155,7 +155,7 @@ export async function apiUpdateData<T>(
 }
 
 export async function apiDeleteData(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   id: string
 ): Promise<{ success: boolean }> {
