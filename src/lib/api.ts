@@ -130,7 +130,7 @@ export async function apiGetData<T>(
 }
 
 export async function apiCreateData<T>(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   data: Record<string, unknown>
 ): Promise<{ data: T }> {
