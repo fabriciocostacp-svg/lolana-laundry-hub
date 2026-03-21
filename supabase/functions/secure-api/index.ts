@@ -102,11 +102,14 @@ Deno.serve(async (req) => {
         error = result.error;
       } else {
         if (table === 'clientes') {
-          // Select only necessary fields, omit sensitive data for non-admins
           const selectFields = isAdmin 
             ? '*' 
             : 'id, numero, nome, telefone, endereco, created_at, updated_at';
           const result = await supabase.from(table).select(selectFields).order('numero', { ascending: true });
+          data = result.data;
+          error = result.error;
+        } else if (table === 'servicos') {
+          const result = await supabase.from(table).select('*').order('categoria', { ascending: true }).order('nome', { ascending: true });
           data = result.data;
           error = result.error;
         } else {
