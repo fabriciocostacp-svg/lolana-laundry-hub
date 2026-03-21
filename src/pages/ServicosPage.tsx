@@ -261,7 +261,7 @@ export const ServicosPage = () => {
     toast.success("Serviço adicionado!");
   };
 
-  if (loadingClientes) {
+  if (loadingClientes || loadingServicos) {
     return (
       <MainLayout title="Serviços">
         <div className="flex items-center justify-center h-64">
