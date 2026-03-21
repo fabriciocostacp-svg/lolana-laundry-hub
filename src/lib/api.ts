@@ -116,7 +116,7 @@ export async function apiResetPassword(token: string, novaSenha: string): Promis
 
 // Data APIs
 export async function apiGetData<T>(
-  table: 'clientes' | 'pedidos',
+  table: 'clientes' | 'pedidos' | 'servicos',
   sessionToken: string,
   id?: string
 ): Promise<{ data: T }> {
