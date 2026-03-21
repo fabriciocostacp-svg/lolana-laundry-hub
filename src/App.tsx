@@ -48,7 +48,7 @@ const App = () => (
                   <ServicosGerenciamentoPage />
                 </ProtectedRoute>
               }
-            <Route
+            />
               path="/pedidos"
               element={
                 <ProtectedRoute>
