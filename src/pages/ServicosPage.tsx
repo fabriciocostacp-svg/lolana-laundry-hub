@@ -44,11 +44,10 @@ import { cn } from "@/lib/utils";
 
 export const ServicosPage = () => {
   const { clientes, isLoading: loadingClientes } = useClientes();
+  const { servicos: servicosDB, isLoading: loadingServicos } = useServicos();
   const { addPedido } = usePedidos();
   const [selectedClienteId, setSelectedClienteId] = useState<string>("");
-  const [quantidades, setQuantidades] = useState<Record<string, number>>(
-    servicosFixos.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
-  );
+  const [quantidades, setQuantidades] = useState<Record<string, number>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [desconto, setDesconto] = useState<string>("");
   const [tipoDesconto, setTipoDesconto] = useState<"percentual" | "valor">("percentual");
