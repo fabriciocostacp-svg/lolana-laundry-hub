@@ -1,10 +1,19 @@
 # 🧺 Lolana Laundry Hub
 
-Sistema web de gestão desenvolvido para organizar a operação de uma lavanderia de forma simples, centralizada e eficiente.
-
-O projeto foi criado para reunir em um único ambiente o controle de clientes, serviços, pedidos e funcionários, com acesso protegido por autenticação e integração com banco de dados.
+<p align="center">
+  <strong>Sistema web de gestão para lavanderia</strong><br />
+  Clientes • Serviços • Pedidos • Funcionários • Banco de dados
+</p>
 
 ---
+
+## 📌 Sobre o projeto
+
+O **Lolana Laundry Hub** é um sistema web criado para organizar a operação de uma lavanderia em um único ambiente digital.
+
+O projeto reúne cadastro de clientes, serviços, pedidos e funcionários, com autenticação, integração com banco de dados e interface responsiva.
+
+Ele faz parte do meu portfólio prático de desenvolvimento de sistemas e demonstra aplicação de conceitos de **React, TypeScript, autenticação, CRUD, rotas protegidas e Supabase**.
 
 ## 🚀 Funcionalidades
 
@@ -13,64 +22,59 @@ O projeto foi criado para reunir em um único ambiente o controle de clientes, s
 - 🧼 Cadastro e gerenciamento de serviços
 - 📦 Controle de pedidos
 - 👨‍💼 Gerenciamento de funcionários
-- 💾 Backup/exportação de dados
+- 💾 Backup e exportação de informações
 - 📱 Interface responsiva
-- 🗄️ Integração com banco de dados
+- ☁️ Integração com banco de dados
+- 🔄 Navegação entre módulos
 
----
+## 🛠️ Tecnologias
 
-## 🛠️ Tecnologias utilizadas
+`React` · `TypeScript` · `Vite` · `Tailwind CSS` · `shadcn/ui` · `Supabase` · `React Router` · `TanStack Query` · `Vitest` · `Git` · `GitHub`
 
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui
-- Supabase
-- React Router
-- TanStack Query
-- Vitest
-- Git & GitHub
+## 🎯 Objetivo
 
----
+O objetivo do sistema é substituir controles manuais por uma aplicação organizada e centralizada, facilitando o acompanhamento das informações da operação.
 
-## 🎯 Objetivo do projeto
+## 📚 Conhecimentos aplicados
 
-O objetivo do Lolana Laundry Hub é digitalizar processos que normalmente seriam feitos de forma manual, facilitando o acompanhamento das informações e melhorando a organização da operação da lavanderia.
-
-Este projeto também faz parte do meu portfólio de desenvolvimento de sistemas web, demonstrando aplicação prática de front-end, autenticação, banco de dados, CRUD e organização de regras de negócio.
-
----
-
-## 📚 Principais aprendizados
-
-Durante o desenvolvimento deste projeto foram trabalhados conceitos como:
-
-- Estruturação de aplicações em React
+- Estruturação de aplicações React
 - Componentização de interfaces
 - Rotas protegidas
-- Consumo e persistência de dados
-- CRUD de informações
+- Autenticação
+- CRUD
+- Integração com banco de dados
 - Gerenciamento de estado
+- Dados assíncronos
 - Validação de formulários
 - Organização de código em TypeScript
-- Integração com Supabase
 - Versionamento com Git e GitHub
 
----
+## ▶️ Como executar localmente
+
+```bash
+npm install
+npm run dev
+```
+
+Para gerar a versão de produção:
+
+```bash
+npm run build
+```
+
+## 🔒 Configuração
+
+O projeto utiliza variáveis de ambiente para conexão com serviços externos. Em um ambiente de produção ou portfólio público, recomenda-se manter arquivos `.env` fora do versionamento e utilizar apenas um `.env.example` sem credenciais reais.
 
 ## 👨‍💻 Desenvolvedor
 
-**Fabricio Costa Cyrillo Pereira**
+**Fabricio Costa Cyrillo Pereira**  
+Estudante de Análise e Desenvolvimento de Sistemas · Desenvolvedor Web Júnior
 
-Estudante de Análise e Desenvolvimento de Sistemas e Desenvolvedor Web Júnior.
-
-🌐 Portfólio: https://flconectadigital.com.br
-
-💼 LinkedIn: https://www.linkedin.com/in/fabricio-costa-b71b293a9
-
-🐙 GitHub: https://github.com/fabriciocostacp-svg
+- 🌐 [FL Conecta Digital](https://flconectadigital.com.br)
+- 💼 [LinkedIn](https://www.linkedin.com/in/fabricio-costa-b71b293a9)
+- 🐙 [GitHub](https://github.com/fabriciocostacp-svg)
 
 ---
 
-> Projeto em evolução. Novas funcionalidades e melhorias podem ser adicionadas conforme as necessidades da operação.
+> Projeto em evolução contínua, desenvolvido para estudo e aplicação prática de desenvolvimento de sistemas web modernos.
