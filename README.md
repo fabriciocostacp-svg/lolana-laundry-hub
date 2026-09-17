@@ -1,73 +1,76 @@
-# Welcome to your Lovable project
+# 🧺 Lolana Laundry Hub
 
-## Project info
+Sistema web de gestão desenvolvido para organizar a operação de uma lavanderia de forma simples, centralizada e eficiente.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+O projeto foi criado para reunir em um único ambiente o controle de clientes, serviços, pedidos e funcionários, com acesso protegido por autenticação e integração com banco de dados.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚀 Funcionalidades
 
-**Use Lovable**
+- 🔐 Login e autenticação de usuários
+- 👥 Cadastro e gerenciamento de clientes
+- 🧼 Cadastro e gerenciamento de serviços
+- 📦 Controle de pedidos
+- 👨‍💼 Gerenciamento de funcionários
+- 💾 Backup/exportação de dados
+- 📱 Interface responsiva
+- 🗄️ Integração com banco de dados
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tecnologias utilizadas
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
 - React
-- shadcn-ui
+- TypeScript
+- Vite
 - Tailwind CSS
+- shadcn/ui
+- Supabase
+- React Router
+- TanStack Query
+- Vitest
+- Git & GitHub
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 🎯 Objetivo do projeto
 
-## Can I connect a custom domain to my Lovable project?
+O objetivo do Lolana Laundry Hub é digitalizar processos que normalmente seriam feitos de forma manual, facilitando o acompanhamento das informações e melhorando a organização da operação da lavanderia.
 
-Yes, you can!
+Este projeto também faz parte do meu portfólio de desenvolvimento de sistemas web, demonstrando aplicação prática de front-end, autenticação, banco de dados, CRUD e organização de regras de negócio.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📚 Principais aprendizados
+
+Durante o desenvolvimento deste projeto foram trabalhados conceitos como:
+
+- Estruturação de aplicações em React
+- Componentização de interfaces
+- Rotas protegidas
+- Consumo e persistência de dados
+- CRUD de informações
+- Gerenciamento de estado
+- Validação de formulários
+- Organização de código em TypeScript
+- Integração com Supabase
+- Versionamento com Git e GitHub
+
+---
+
+## 👨‍💻 Desenvolvedor
+
+**Fabricio Costa Cyrillo Pereira**
+
+Estudante de Análise e Desenvolvimento de Sistemas e Desenvolvedor Web Júnior.
+
+🌐 Portfólio: https://flconectadigital.com.br
+
+💼 LinkedIn: https://www.linkedin.com/in/fabricio-costa-b71b293a9
+
+🐙 GitHub: https://github.com/fabriciocostacp-svg
+
+---
+
+> Projeto em evolução. Novas funcionalidades e melhorias podem ser adicionadas conforme as necessidades da operação.
